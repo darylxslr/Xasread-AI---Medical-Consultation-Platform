@@ -1,4 +1,5 @@
 import ssl
+from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
@@ -55,9 +56,10 @@ class Base(DeclarativeBase):
     pass
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     await ensure_db_initialized()
-    async with get_session_maker() as session:
+    async_session = get_session_maker()
+    async with async_session() as session:
         yield session
 
 

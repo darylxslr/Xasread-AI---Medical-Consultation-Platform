@@ -4,14 +4,24 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def default_database_url() -> str:
+    return (
+        os.getenv("DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
+        or os.getenv("POSTGRES_PRISMA_URL")
+        or os.getenv("POSTGRES_URL_NON_POOLING")
+        or (
+            "sqlite+aiosqlite:////tmp/xasread.db"
+            if os.getenv("VERCEL")
+            else "sqlite+aiosqlite:///./xasread.db"
+        )
+    )
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
-    database_url: str = Field(
-        default_factory=lambda: "sqlite+aiosqlite:////tmp/xasread.db"
-        if os.getenv("VERCEL")
-        else "sqlite+aiosqlite:///./xasread.db"
-    )
+    database_url: str = Field(default_factory=default_database_url)
     google_client_id: str = Field(default="")
     google_client_secret: str = Field(default="")
     jwt_secret: str = Field(default="xasread-dev-secret-change-in-production-32bytes!")

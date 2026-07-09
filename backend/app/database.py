@@ -1,31 +1,53 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
+from sqlalchemy.engine import make_url
 
 from config import settings
 
 _db_initialized = False
 _db_init_error: Exception | None = None
+_engine: AsyncEngine | None = None
+_session_maker: async_sessionmaker[AsyncSession] | None = None
 
 
 def normalize_database_url(url: str) -> str:
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
     if url.startswith("postgresql://"):
-        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    return url
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    parsed = make_url(url)
+    if parsed.drivername == "postgresql+asyncpg":
+        query = dict(parsed.query)
+        sslmode = query.pop("sslmode", None)
+        if sslmode and sslmode != "disable":
+            query.setdefault("ssl", "true")
+        query.pop("channel_binding", None)
+        return parsed.set(query=query).render_as_string(hide_password=False)
+    return str(parsed)
 
 
-engine = create_async_engine(
-    normalize_database_url(settings.database_url),
-    echo=False,
-    future=True,
-)
+def get_engine() -> AsyncEngine:
+    global _engine
+    if _engine is None:
+        _engine = create_async_engine(
+            normalize_database_url(settings.database_url),
+            echo=False,
+            future=True,
+            poolclass=NullPool,
+        )
+    return _engine
 
-async_session_maker = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+
+def get_session_maker() -> async_sessionmaker[AsyncSession]:
+    global _session_maker
+    if _session_maker is None:
+        _session_maker = async_sessionmaker(
+            get_engine(),
+            class_=AsyncSession,
+            expire_on_commit=False,
+        )
+    return _session_maker
 
 
 class Base(DeclarativeBase):
@@ -34,7 +56,7 @@ class Base(DeclarativeBase):
 
 async def get_db() -> AsyncSession:
     await ensure_db_initialized()
-    async with async_session_maker() as session:
+    async with get_session_maker() as session:
         yield session
 
 
@@ -42,7 +64,7 @@ async def init_db() -> None:
     global _db_initialized, _db_init_error
     if _db_initialized:
         return
-    async with engine.begin() as conn:
+    async with get_engine().begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     _db_initialized = True
     _db_init_error = None

@@ -51,6 +51,11 @@ def verify_oauth_state(state: str | None) -> bool:
     return datetime.now(timezone.utc) - issued_at <= timedelta(minutes=10)
 
 
+def trim_error_body(text: str, limit: int = 500) -> str:
+    clean = " ".join(text.split())
+    return clean[:limit]
+
+
 @router.get("/google")
 async def google_login():
     if not settings.google_client_id or not settings.google_client_secret:
@@ -94,32 +99,44 @@ async def google_callback(
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
 
     async with httpx.AsyncClient(timeout=10.0) as client:
-        token_response = await client.post(
-            settings.google_token_url,
-            data={
-                "code": code,
-                "client_id": settings.google_client_id,
-                "client_secret": settings.google_client_secret,
-                "redirect_uri": settings.google_redirect_uri,
-                "grant_type": "authorization_code",
-            },
-            headers={"Accept": "application/json"},
-        )
+        try:
+            token_response = await client.post(
+                settings.google_token_url,
+                data={
+                    "code": code,
+                    "client_id": settings.google_client_id,
+                    "client_secret": settings.google_client_secret,
+                    "redirect_uri": settings.google_redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+                headers={"Accept": "application/json"},
+            )
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=502, detail=f"Google token request failed: {exc.__class__.__name__}") from exc
 
     if token_response.status_code != 200:
-        raise HTTPException(status_code=400, detail="Failed to exchange code for token")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to exchange code for token: {trim_error_body(token_response.text)}",
+        )
 
     token_data = token_response.json()
     access_token = token_data.get("access_token")
 
     async with httpx.AsyncClient(timeout=10.0) as client:
-        userinfo_response = await client.get(
-            settings.google_userinfo_url,
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
+        try:
+            userinfo_response = await client.get(
+                settings.google_userinfo_url,
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=502, detail=f"Google userinfo request failed: {exc.__class__.__name__}") from exc
 
     if userinfo_response.status_code != 200:
-        raise HTTPException(status_code=400, detail="Failed to fetch user info")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch user info: {trim_error_body(userinfo_response.text)}",
+        )
 
     userinfo = userinfo_response.json()
     google_id = userinfo.get("id")

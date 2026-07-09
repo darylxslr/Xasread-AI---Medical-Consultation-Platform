@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Bot, Copy, Check, Loader } from 'lucide-react'
+import { Copy, Check, Loader } from 'lucide-react'
 import DOMPurify from 'isomorphic-dompurify'
 import MedicalImageViewer from '../consultation/MedicalImageViewer'
 import AnalysisPanel from '../consultation/AnalysisPanel'
@@ -33,11 +33,6 @@ const s = {
     width: 32,
     height: 32,
     borderRadius: 'var(--radius-sm)',
-    background: 'linear-gradient(135deg, #D4782F 0%, #E8954F 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#fff',
     flexShrink: 0,
     marginRight: 12,
     marginTop: 2,
@@ -211,7 +206,7 @@ export default function AIResponse({ message, onRephrase }: AIResponseProps) {
   return (
     <div style={s.wrapper}>
       <div style={s.avatar}>
-        <Bot size={16} />
+        <img src="/logo.svg" alt="Xasread AI" style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)' }} />
       </div>
       <div style={s.content}>
         <div style={s.header}>

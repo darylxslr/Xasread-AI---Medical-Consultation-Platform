@@ -5,6 +5,7 @@ interface InputAreaProps {
   onSend: (text: string, fileName?: string) => void
   onFilePick: () => void
   pendingFile: string | null
+  sessionId?: string
 }
 
 const s = {
@@ -147,7 +148,7 @@ const modeChipLabels: Record<string, string> = {
   clinical: 'Clinical',
 }
 
-export default function InputArea({ onSend, onFilePick, pendingFile }: InputAreaProps) {
+export default function InputArea({ onSend, onFilePick, pendingFile, sessionId }: InputAreaProps) {
   const [value, setValue] = useState('')
   const [focused, setFocused] = useState(false)
   const [mode, setMode] = useState(loadModeFromStorage)
@@ -260,9 +261,17 @@ export default function InputArea({ onSend, onFilePick, pendingFile }: InputArea
               </span>
             )}
           </div>
-          <div style={s.hipaaBadge}>
+          <div className="header-mobile-hide" style={s.hipaaBadge}>
             <Shield size={12} />
             HIPAA-Safe Session
+          </div>
+          <div className="header-mobile-only" style={{
+            fontSize: 11,
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--text-muted)',
+            fontWeight: 600,
+          }}>
+            {sessionId}
           </div>
         </div>
         <div

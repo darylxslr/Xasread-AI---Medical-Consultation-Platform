@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTheme } from '../../context/ThemeContext'
-import SettingsPanel from '../settings/SettingsPanel'
 import GuestExpiryBanner from './GuestExpiryBanner'
 import { Plus, Search, MessageSquare, Settings, Sun, Moon, Clock, Inbox, LogOut, Users, Trash2 } from 'lucide-react'
 import type { Conversation } from '../../types'
@@ -17,6 +16,7 @@ interface SidebarProps {
   avatarUrl?: string
   isOpen?: boolean
   onToggle?: () => void
+  onOpenSettings?: () => void
   guestExpiresAt?: string | null
 }
 
@@ -259,10 +259,9 @@ function formatTimestamp(iso?: string): string {
   return `${datePart} at ${timePart}`
 }
 
-export default function Sidebar({ conversations, activeConv, onSelectConv, onNewConsultation, onDeleteConv, onSignOut, disabled, userName, avatarUrl, isOpen, onToggle, guestExpiresAt }: SidebarProps) {
+export default function Sidebar({ conversations, activeConv, onSelectConv, onNewConsultation, onDeleteConv, onSignOut, disabled, userName, avatarUrl, isOpen, onToggle, onOpenSettings, guestExpiresAt }: SidebarProps) {
   const { theme, toggleTheme } = useTheme()
   const [search, setSearch] = useState('')
-  const [showSettings, setShowSettings] = useState(false)
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const accountMenuRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef(0)
@@ -285,7 +284,15 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
   }, [accountMenuOpen])
 
   const sidebarContent = (
-    <aside style={{ ...s.sidebar, zIndex: isOpen ? 101 : 100 }}>
+    <aside
+      className={`sidebar-root${isOpen ? ' open' : ''}`}
+      style={{ ...s.sidebar, zIndex: isOpen ? 101 : 100 }}
+      onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
+      onTouchEnd={e => {
+        const dx = touchStartX.current - e.changedTouches[0].clientX
+        if (dx > 80) onToggle?.()
+      }}
+    >
       <style>{`
         .sidebar-new-btn:hover { background: var(--primary-light) !important; border-color: var(--primary) !important; }
         .sidebar-new-btn:active { transform: scale(0.97) !important; }
@@ -299,7 +306,7 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
         .sidebar-account-item.danger:hover { background: rgba(239,68,68,0.08) !important; color: #EF4444 !important; }
       `}</style>
       <div style={s.logoArea}>
-        <div style={s.logoIcon}>X</div>
+        <img src="/logo.svg" alt="Xasread" style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)' }} />
         <div>
           <div style={s.logoText}>Xasread</div>
           <div style={s.logoSub}>AI Medical Consultant</div>
@@ -415,33 +422,19 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
           <button className="sidebar-footer-btn" style={s.iconBtn} onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
             {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
           </button>
-          <button className="sidebar-footer-btn" style={s.iconBtn} title="Settings" onClick={() => setShowSettings(true)}>
+          <button className="sidebar-footer-btn" style={s.iconBtn} title="Settings" onClick={onOpenSettings}>
             <Settings size={16} />
           </button>
         </div>
       </div>
 
-      {showSettings && (
-        <SettingsPanel onClose={() => setShowSettings(false)} onSignOut={onSignOut} />
-      )}
     </aside>
   )
 
   return (
     <>
-      <div className="sidebar-desktop">
-        {sidebarContent}
-      </div>
-      <div className={`sidebar-mobile sidebar-overlay${isOpen ? ' open' : ''}`} onClick={onToggle} />
-      <div className={`sidebar-mobile sidebar-drawer${isOpen ? ' open' : ''}`} style={{ position: 'fixed', left: 0, top: 0, zIndex: 100 }}
-        onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
-        onTouchEnd={e => {
-          const dx = touchStartX.current - e.changedTouches[0].clientX
-          if (dx > 80) onToggle?.()
-        }}
-      >
-        {sidebarContent}
-      </div>
+      {sidebarContent}
+      <div className={`sidebar-overlay${isOpen ? ' open' : ''}`} onClick={onToggle} />
     </>
   )
 }

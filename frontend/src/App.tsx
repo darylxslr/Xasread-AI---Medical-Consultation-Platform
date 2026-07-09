@@ -9,6 +9,7 @@ import AIResponse from './features/chat/AIResponse'
 import InputArea from './features/chat/InputArea'
 import FreshBanner from './features/chat/FreshBanner'
 import ConfirmModal from './layouts/ConfirmModal'
+import SettingsPanel from './features/settings/SettingsPanel'
 import LandingPage from './features/auth/LandingPage'
 import TypingIndicator from './features/chat/TypingIndicator'
 import { getChatMode, applyFontSize } from './lib/storage'
@@ -88,23 +89,16 @@ function WelcomeScreen({ conversations, onNewConsultation, onSelectConv }: Welco
         margin: '0 auto',
         textAlign: 'center',
       }}>
-        <div style={{
-          width: isMobile ? 56 : 72,
-          height: isMobile ? 56 : 72,
-          borderRadius: 'var(--radius-lg)',
-          background: 'linear-gradient(135deg, #D4782F 0%, #E8954F 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#fff',
-          fontSize: isMobile ? 26 : 34,
-          fontWeight: 700,
-          margin: '0 auto 20px',
-          boxShadow: '0 8px 32px rgba(212, 120, 47, 0.2)',
-        }}>
-          X
-        </div>
-
+<img
+          src="/logo.svg"
+          alt="Xasread"
+          style={{
+            width: isMobile ? 56 : 72,
+            height: isMobile ? 56 : 72,
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: '0 8px 32px rgba(212, 120, 47, 0.2)',
+          }}
+        />
         <h1 style={{
           fontSize: isMobile ? 22 : 28,
           fontWeight: 700,
@@ -261,7 +255,11 @@ function AuthenticatedApp() {
   const [isTyping, setIsTyping] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [lastConvTitle, setLastConvTitle] = useState<string | null>(null)
+  const randomSuffix = useMemo(() => String(Math.floor(Math.random() * 9000) + 1000), [])
+  const sessionId = useMemo(() => `SID-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomSuffix}`, [randomSuffix])
+  const shortId = useMemo(() => `SID-${randomSuffix}`, [randomSuffix])
   const [guestExpiresAt, setGuestExpiresAt] = useState<string | null>(null)
   const guestStorageKey = useMemo(() =>
     'xasread-guest-data-' + (guestUsername || 'default') + '-' + (guestToken || 'anon'),
@@ -622,6 +620,7 @@ function AuthenticatedApp() {
           isOpen={sidebarOpen}
           onToggle={toggleSidebar}
           guestExpiresAt={guestExpiresAt}
+          onOpenSettings={() => setShowSettings(true)}
         />
 
       <div style={{
@@ -633,7 +632,7 @@ function AuthenticatedApp() {
         background: 'var(--bg-main)',
         position: 'relative',
       }}>
-        <TopHeader onEndSession={handleEndSession} onToggleSidebar={toggleSidebar} />
+        <TopHeader onEndSession={handleEndSession} onToggleSidebar={toggleSidebar} sessionId={sessionId} />
 
         {isLoadingMessages ? (
           <div style={{
@@ -657,7 +656,7 @@ function AuthenticatedApp() {
           <WelcomeScreen conversations={conversations} onNewConsultation={handleNewConsultation} onSelectConv={persistActiveConv} />
         )}
 
-        {(activeConv || isFreshConsult) && <InputArea onSend={handleSend} onFilePick={handleFilePick} pendingFile={pendingFile?.name ?? null} />}
+        {(activeConv || isFreshConsult) && <InputArea onSend={handleSend} onFilePick={handleFilePick} pendingFile={pendingFile?.name ?? null} sessionId={shortId} />}
         <input
           ref={fileInputRef}
           type="file"
@@ -676,6 +675,9 @@ function AuthenticatedApp() {
             onConfirm={confirmDelete}
             onCancel={() => setDeleteTarget(null)}
           />
+        )}
+        {showSettings && (
+          <SettingsPanel onClose={() => setShowSettings(false)} onSignOut={signOut} />
         )}
       </div>
     </div>

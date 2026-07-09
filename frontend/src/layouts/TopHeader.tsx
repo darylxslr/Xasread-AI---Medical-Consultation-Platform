@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Shield, MoreVertical, LogOut, Info, AlertCircle, Download, Menu } from 'lucide-react'
 
 interface TopHeaderProps {
   onEndSession: () => void
   onExport?: () => void
   onToggleSidebar?: () => void
+  sessionId: string
 }
 
 const s = {
@@ -129,11 +130,10 @@ function PulseDot() {
   )
 }
 
-export default function TopHeader({ onEndSession, onExport, onToggleSidebar }: TopHeaderProps) {
+export default function TopHeader({ onEndSession, onExport, onToggleSidebar, sessionId }: TopHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [alertMsg, setAlertMsg] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const sessionId = useMemo(() => `SID-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(Math.floor(Math.random() * 9000) + 1000)}`, [])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -167,7 +167,7 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar }: T
         </button>
         <span className="header-mobile-hide" style={s.sessionLabel}>Session</span>
         <span className="header-mobile-hide" style={s.sessionId}>{sessionId}</span>
-        <div className="header-mobile-hide" style={s.statusBadge}>
+        <div style={s.statusBadge}>
           <PulseDot />
           Model Active
         </div>
@@ -175,7 +175,8 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar }: T
       <div style={s.right}>
         <div style={s.hipaaBadge}>
           <Shield size={12} />
-          HIPAA-Safe
+          <span className="header-mobile-hide">HIPAA-Safe</span>
+          <span className="header-mobile-only">HIPAA-Safe Session</span>
         </div>
         <div ref={menuRef} style={{ position: 'relative' }}>
           <button className="header-icon-btn" style={s.iconBtn} onClick={() => setMenuOpen(o => !o)}>

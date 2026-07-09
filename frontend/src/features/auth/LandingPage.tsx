@@ -154,7 +154,7 @@ export default function LandingPage({ onContinueAsGuest }: LandingPageProps) {
         .landing-start-btn:hover { opacity: 0.9 !important; }
       `}</style>
       <div style={cardStyle}>
-        <div style={{ ...s.logo, width: isMobile ? 48 : 56, height: isMobile ? 48 : 56, fontSize: isMobile ? 20 : 24 }}>X</div>
+        <img src="/logo.svg" alt="Xasread" style={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56, borderRadius: 'var(--radius-md)' }} />
         <h1 style={isMobile ? s.titleMobile : s.title}>Xasread</h1>
         <p style={isMobile ? s.subtitleMobile : s.subtitle}>AI Medical Consultation</p>
 

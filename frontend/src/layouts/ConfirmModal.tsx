@@ -34,8 +34,8 @@ export default function ConfirmModal({
           style={{
             background: 'var(--bg-card)',
             borderRadius: 'var(--radius-lg)',
-            padding: isMobile ? 20 : 24,
-            width: isMobile ? 'calc(100vw - 32px)' : 360,
+            padding: 'var(--modal-padding)',
+            width: 'var(--modal-width)',
             maxWidth: isMobile ? 400 : '90vw',
             boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
           }}

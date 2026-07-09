@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Paperclip, MoreVertical, Edit3, Trash2, Check, X } from 'lucide-react'
-import type { Message } from '../types'
+import type { Message } from '../../types'
 
 interface UserMessageProps {
   message: Message
@@ -29,7 +29,7 @@ const s = {
     position: 'relative',
   } as const,
   container: {
-    maxWidth: '70%',
+    maxWidth: 'var(--msg-bubble-max)',
   } as const,
   bubble: {
     background: 'var(--user-bubble)',

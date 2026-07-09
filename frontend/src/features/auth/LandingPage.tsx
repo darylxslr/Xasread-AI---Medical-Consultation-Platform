@@ -1,8 +1,9 @@
-import { Shield } from 'lucide-react'
-import { useMediaQuery } from '../hooks/useMediaQuery'
+import { Shield, ArrowLeft } from 'lucide-react'
+import { useState } from 'react'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 
 interface LandingPageProps {
-  onContinueAsGuest: () => void
+  onContinueAsGuest: (name: string) => void
 }
 
 const s = {
@@ -131,52 +132,111 @@ function GoogleIcon() {
 
 export default function LandingPage({ onContinueAsGuest }: LandingPageProps) {
   const isMobile = useMediaQuery('(max-width: 639px)')
+  const [showNameInput, setShowNameInput] = useState(false)
+  const [guestName, setGuestName] = useState('')
   const handleGoogleSignIn = () => {
     window.location.href = '/auth/google'
   }
 
   const cardStyle = { ...s.card, padding: isMobile ? '32px 20px 28px' : '48px 40px 36px' }
 
+  const handleStartGuest = () => {
+    const name = guestName.trim()
+    if (name) onContinueAsGuest(name)
+  }
+
   return (
     <div style={s.wrapper}>
       <style>{`
         .landing-google-btn:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; border-color: #d0d0d0 !important; }
         .landing-guest-btn:hover { border-color: var(--primary) !important; color: var(--primary) !important; background: var(--primary-light) !important; }
+        .landing-input:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 3px rgba(212,120,47,0.15) !important; outline: none !important; }
+        .landing-start-btn:hover { opacity: 0.9 !important; }
       `}</style>
       <div style={cardStyle}>
         <div style={{ ...s.logo, width: isMobile ? 48 : 56, height: isMobile ? 48 : 56, fontSize: isMobile ? 20 : 24 }}>X</div>
         <h1 style={isMobile ? s.titleMobile : s.title}>Xasread</h1>
         <p style={isMobile ? s.subtitleMobile : s.subtitle}>AI Medical Consultation</p>
 
-        <p style={s.desc}>
-          Xasread is an AI-powered medical assistant that helps you understand symptoms, 
-          review medical images and lab results, and get clear, actionable health insights.
-        </p>
-        <p style={{ ...s.desc, marginBottom: 0 }}>
-          Built for patients, caregivers, and healthcare professionals who want fast, 
-          reliable AI-assisted analysis — always private and HIPAA-compliant.
-        </p>
+        {showNameInput ? (
+          <>
+            <button
+              onClick={() => { setShowNameInput(false); setGuestName('') }}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)',
+                display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, padding: 0, marginBottom: 16,
+              }}
+            >
+              <ArrowLeft size={16} /> Back
+            </button>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, textAlign: 'left' as const }}>
+              Enter a name to identify your guest session. Different names keep data separate.
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, textAlign: 'left' as const }}>
+              Note: Guest data is temporary. Closing this tab will clear your session.
+            </p>
+            <input
+              className="landing-input"
+              type="text"
+              placeholder="Enter your name"
+              value={guestName}
+              onChange={e => setGuestName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleStartGuest() }}
+              autoFocus
+              style={{
+                width: '100%', padding: '12px 16px', borderRadius: 'var(--radius-pill)',
+                border: '1px solid var(--border-color)', background: 'var(--bg-main)',
+                color: 'var(--text-primary)', fontSize: 14, boxSizing: 'border-box',
+                transition: 'border-color 0.2s, box-shadow 0.2s', marginBottom: 12,
+              }}
+            />
+            <button
+              className="landing-start-btn"
+              onClick={handleStartGuest}
+              disabled={!guestName.trim()}
+              style={{
+                width: '100%', padding: '12px 20px', borderRadius: 'var(--radius-pill)',
+                border: 'none', background: guestName.trim() ? 'linear-gradient(135deg, #D4782F 0%, #E8954F 100%)' : 'var(--border-color)',
+                color: guestName.trim() ? '#fff' : 'var(--text-muted)', fontSize: 14, fontWeight: 600,
+                cursor: guestName.trim() ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
+              }}
+            >
+              Start
+            </button>
+          </>
+        ) : (
+          <>
+            <p style={s.desc}>
+              Xasread is an AI-powered medical assistant that helps you understand symptoms, 
+              review medical images and lab results, and get clear, actionable health insights.
+            </p>
+            <p style={{ ...s.desc, marginBottom: 0 }}>
+              Built for patients, caregivers, and healthcare professionals who want fast, 
+              reliable AI-assisted analysis — always private and HIPAA-compliant.
+            </p>
 
-        <div style={s.divider} />
+            <div style={s.divider} />
 
-        <button
-          className="landing-google-btn"
-          style={s.googleBtn}
-          onClick={handleGoogleSignIn}
-        >
-          <GoogleIcon />
-          Continue with Google
-        </button>
+            <button
+              className="landing-google-btn"
+              style={s.googleBtn}
+              onClick={handleGoogleSignIn}
+            >
+              <GoogleIcon />
+              Continue with Google
+            </button>
 
-        <div style={{ marginTop: 12 }}>
-          <button
-            className="landing-guest-btn"
-            style={s.guestBtn}
-            onClick={onContinueAsGuest}
-          >
-            Continue as Guest
-          </button>
-        </div>
+            <div style={{ marginTop: 12 }}>
+              <button
+                className="landing-guest-btn"
+                style={s.guestBtn}
+                onClick={() => setShowNameInput(true)}
+              >
+                Continue as Guest
+              </button>
+            </div>
+          </>
+        )}
 
         <div style={s.footer}>
           <Shield size={12} />

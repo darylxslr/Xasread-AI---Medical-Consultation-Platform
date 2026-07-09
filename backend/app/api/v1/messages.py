@@ -2,12 +2,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from database import get_db
-from models import User, Conversation, Message
-from schemas import MessageCreate, MessageOut
-from auth import get_current_user
+from app.database import get_db
+from app.models import User, Conversation, Message
+from app.schemas.message import MessageCreate, MessageOut
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/conversations", tags=["messages"])
 
@@ -56,7 +55,6 @@ async def create_message(
 
     msg = Message(conversation_id=conv_id, role=data.role, content=data.content)
     db.add(msg)
-
     conv.updated_at = datetime.now(timezone.utc)
 
     await db.commit()

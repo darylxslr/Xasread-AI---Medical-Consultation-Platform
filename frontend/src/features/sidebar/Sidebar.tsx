@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { useTheme } from '../context/ThemeContext'
-import { useMediaQuery } from '../hooks/useMediaQuery'
-import SettingsPanel from './SettingsPanel'
+import { useTheme } from '../../context/ThemeContext'
+import SettingsPanel from '../settings/SettingsPanel'
+import GuestExpiryBanner from './GuestExpiryBanner'
 import { Plus, Search, MessageSquare, Settings, Sun, Moon, Clock, Inbox, LogOut, Users, Trash2 } from 'lucide-react'
-import type { Conversation } from '../types'
+import type { Conversation } from '../../types'
 
 interface SidebarProps {
   conversations: Conversation[]
@@ -17,6 +17,7 @@ interface SidebarProps {
   avatarUrl?: string
   isOpen?: boolean
   onToggle?: () => void
+  guestExpiresAt?: string | null
 }
 
 const s = {
@@ -258,12 +259,13 @@ function formatTimestamp(iso?: string): string {
   return `${datePart} at ${timePart}`
 }
 
-export default function Sidebar({ conversations, activeConv, onSelectConv, onNewConsultation, onDeleteConv, onSignOut, disabled, userName, avatarUrl, isOpen, onToggle }: SidebarProps) {
+export default function Sidebar({ conversations, activeConv, onSelectConv, onNewConsultation, onDeleteConv, onSignOut, disabled, userName, avatarUrl, isOpen, onToggle, guestExpiresAt }: SidebarProps) {
   const { theme, toggleTheme } = useTheme()
   const [search, setSearch] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const accountMenuRef = useRef<HTMLDivElement>(null)
+  const touchStartX = useRef(0)
 
   const filtered = conversations
     .filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
@@ -282,11 +284,8 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
     return () => document.removeEventListener('mousedown', handler)
   }, [accountMenuOpen])
 
-  const isMobile = useMediaQuery('(max-width: 639px)')
-
-  if (!isMobile) {
-    return (
-      <aside style={s.sidebar}>
+  const sidebarContent = (
+    <aside style={{ ...s.sidebar, zIndex: isOpen ? 101 : 100 }}>
       <style>{`
         .sidebar-new-btn:hover { background: var(--primary-light) !important; border-color: var(--primary) !important; }
         .sidebar-new-btn:active { transform: scale(0.97) !important; }
@@ -380,143 +379,8 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
         </div>
       )}
 
-      <div style={s.footer}>
-        <div ref={accountMenuRef} style={{ position: 'relative', flex: 1 }}>
-          <button className="sidebar-user-btn" style={s.userBtn} onClick={() => setAccountMenuOpen(o => !o)}>
-            <div style={s.avatar}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-              ) : (
-                userName ? userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'G'
-              )}
-            </div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={s.userName}>{userName || 'Guest User'}</div>
-              <div style={s.userRole}>{userName ? 'User' : 'Guest'}</div>
-            </div>
-          </button>
-          {accountMenuOpen && (
-            <div style={s.accountDropdown}>
-              <button className="sidebar-account-item" style={s.accountDropdownItem} onClick={() => { setAccountMenuOpen(false); onSignOut(); }}>
-                <Users size={14} />
-                Switch Account
-              </button>
-              <button className="sidebar-account-item danger" style={s.accountDropdownItem} onClick={() => { setAccountMenuOpen(false); onSignOut(); }}>
-                <LogOut size={14} />
-                Sign Out
-              </button>
-            </div>
-          )}
-        </div>
-        <div style={s.footerActions}>
-          <button className="sidebar-footer-btn" style={s.iconBtn} onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
-            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-          </button>
-          <button className="sidebar-footer-btn" style={s.iconBtn} title="Settings" onClick={() => setShowSettings(true)}>
-            <Settings size={16} />
-          </button>
-        </div>
-      </div>
-
-      {showSettings && (
-        <SettingsPanel onClose={() => setShowSettings(false)} onSignOut={onSignOut} />
-      )}
-    </aside>
-  )}
-
-  const sidebarContent = (
-    <aside style={{ ...s.sidebar, zIndex: isOpen ? 101 : 100 }}>
-      <style>{`
-        .sidebar-new-btn:hover { background: var(--primary-light) !important; border-color: var(--primary) !important; }
-        .sidebar-new-btn:active { transform: scale(0.97) !important; }
-        .sidebar-history-item:hover { background: var(--bg-hover) !important; }
-        .sidebar-history-item:hover .sidebar-del-btn { opacity: 1 !important; }
-        .sidebar-del-btn:hover { color: #EF4444 !important; background: rgba(239,68,68,0.08) !important; }
-        .sidebar-footer-btn:hover { background: var(--bg-hover) !important; color: var(--text-secondary) !important; }
-        .sidebar-search-input:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 2px var(--primary-light) !important; }
-        .sidebar-user-btn:hover { background: var(--bg-hover) !important; }
-        .sidebar-account-item:hover { background: var(--bg-hover) !important; }
-        .sidebar-account-item.danger:hover { background: rgba(239,68,68,0.08) !important; color: #EF4444 !important; }
-      `}</style>
-      <div style={s.logoArea}>
-        <div style={s.logoIcon}>X</div>
-        <div>
-          <div style={s.logoText}>Xasread</div>
-          <div style={s.logoSub}>AI Medical Consultant</div>
-        </div>
-      </div>
-
-      <button className="sidebar-new-btn" style={{ ...s.newBtn, opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }} disabled={disabled} onClick={handleNew}>
-        <Plus size={16} />
-        New Consultation
-      </button>
-
-      {!isEmpty && (
-        <div style={s.searchWrap}>
-          <input
-            className="sidebar-search-input"
-            style={s.searchInput}
-            placeholder="Search consultations..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          <div style={s.searchIcon}>
-            <Search size={14} />
-          </div>
-        </div>
-      )}
-
-      {isEmpty ? (
-        <div style={s.emptyState}>
-          <div style={s.emptyIcon}><Inbox size={32} /></div>
-          <p style={s.emptyText}>No consultations yet.<br />Start a new consultation to begin.</p>
-        </div>
-      ) : noResults ? (
-        <div style={s.emptyState}>
-          <div style={s.emptyIcon}><Search size={28} style={{ opacity: 0.4 }} /></div>
-          <p style={s.emptyText}>No consultations match<br />"{search}"</p>
-        </div>
-      ) : (
-        <div style={s.history}>
-          {filtered.map(conv => (
-            <div
-              key={conv.id}
-              className="sidebar-history-item"
-              style={{
-                ...s.historyItem,
-                background: activeConv === conv.id ? 'var(--primary-light)' : 'transparent',
-                borderLeft: activeConv === conv.id ? '3px solid var(--primary)' : '3px solid transparent',
-                position: 'relative',
-                paddingRight: 40,
-              }}
-              onClick={() => handleSelect(conv.id)}
-            >
-              <div style={s.historyTitle}>
-                <MessageSquare size={12} style={{ marginRight: 6, color: 'var(--text-muted)', verticalAlign: -1 }} />
-                {conv.title}
-              </div>
-                <div style={s.historyTime}>
-                <Clock size={10} />
-                {formatTimestamp(conv.timestamp)}
-              </div>
-              <button
-                className="sidebar-del-btn"
-                style={{
-                  position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-                  width: 24, height: 24, borderRadius: 'var(--radius-sm)',
-                  border: 'none', background: 'transparent', color: 'var(--text-muted)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', opacity: 0, transition: 'all 0.15s',
-                  padding: 0,
-                }}
-                onClick={e => { e.stopPropagation(); onDeleteConv(conv.id) }}
-                title="Delete consultation"
-              >
-                <Trash2 size={13} />
-              </button>
-            </div>
-          ))}
-        </div>
+            {guestExpiresAt && (
+        <GuestExpiryBanner expiresAt={guestExpiresAt} />
       )}
 
       <div style={s.footer}>
@@ -531,7 +395,7 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
             </div>
             <div style={{ textAlign: 'left' }}>
               <div style={s.userName}>{userName || 'Guest User'}</div>
-              <div style={s.userRole}>{userName ? 'User' : 'Guest'}</div>
+              <div style={s.userRole}>{guestExpiresAt ? 'Guest' : 'User'}</div>
             </div>
           </button>
           {accountMenuOpen && (
@@ -565,8 +429,17 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
 
   return (
     <>
-      <div className={`sidebar-overlay${isOpen ? ' open' : ''}`} onClick={onToggle} />
-      <div className={`sidebar-drawer${isOpen ? ' open' : ''}`} style={{ position: 'fixed', left: 0, top: 0, zIndex: 100 }}>
+      <div className="sidebar-desktop">
+        {sidebarContent}
+      </div>
+      <div className={`sidebar-mobile sidebar-overlay${isOpen ? ' open' : ''}`} onClick={onToggle} />
+      <div className={`sidebar-mobile sidebar-drawer${isOpen ? ' open' : ''}`} style={{ position: 'fixed', left: 0, top: 0, zIndex: 100 }}
+        onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
+        onTouchEnd={e => {
+          const dx = touchStartX.current - e.changedTouches[0].clientX
+          if (dx > 80) onToggle?.()
+        }}
+      >
         {sidebarContent}
       </div>
     </>

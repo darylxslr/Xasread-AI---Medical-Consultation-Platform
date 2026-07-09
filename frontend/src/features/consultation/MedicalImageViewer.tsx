@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
-import type { ImageData, Finding } from '../types'
+import type { ImageData, Finding } from '../../types'
 
 const FINDING_COLORS: Record<string, { stroke: string; fill: string; hoverFill: string; labelBg: string }> = {
   orange: { stroke: '#F97316', fill: 'rgba(249, 115, 22, 0.12)', hoverFill: 'rgba(249, 115, 22, 0.28)', labelBg: '#F97316' },
@@ -106,11 +106,12 @@ function CornerBrackets({ x, y, w, h, color, isHovered }: {
   )
 }
 
-function FindingBox({ finding }: { finding: Finding }) {
+function FindingBox({ finding, active = false }: { finding: Finding; active?: boolean }) {
   const [hovered, setHovered] = useState(false)
   const color = FINDING_COLORS[finding.color]
   const cx = finding.x + finding.w / 2
   const cy = finding.y - 4.5
+  const isActive = active || hovered
 
   return (
     <g
@@ -118,8 +119,8 @@ function FindingBox({ finding }: { finding: Finding }) {
       onMouseLeave={() => setHovered(false)}
       style={{ cursor: 'pointer' }}
     >
-      <CornerBrackets x={finding.x} y={finding.y} w={finding.w} h={finding.h} color={finding.color} isHovered={hovered} />
-      {hovered && (
+      <CornerBrackets x={finding.x} y={finding.y} w={finding.w} h={finding.h} color={finding.color} isHovered={isActive} />
+      {isActive && (
         <rect
           x={`${finding.x}%`}
           y={`${finding.y}%`}
@@ -127,25 +128,26 @@ function FindingBox({ finding }: { finding: Finding }) {
           height={`${finding.h}%`}
           fill={color.hoverFill}
           stroke={color.stroke}
-          strokeWidth={2}
+          strokeWidth={active ? 3 : 2}
           rx={4}
         />
       )}
       <foreignObject x={`${cx - 6}%`} y={`${cy}%`} width="12%" height="20" style={{ overflow: 'visible' }}>
         <div
           style={{
-            background: color.labelBg,
+            background: isActive ? '#fff' : color.labelBg,
             padding: '2px 8px',
             borderRadius: 6,
             fontSize: 10,
             fontWeight: 600,
-            color: '#fff',
+            color: isActive ? '#000' : '#fff',
             fontFamily: 'var(--font-mono)',
             textAlign: 'center',
             whiteSpace: 'nowrap',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+            boxShadow: isActive ? '0 2px 12px rgba(255,255,255,0.5)' : '0 2px 6px rgba(0,0,0,0.4)',
             display: 'inline-block',
             marginLeft: '-50%',
+            transition: 'all 0.15s',
           }}
         >
           {finding.label} · {finding.confidence}%
@@ -157,11 +159,18 @@ function FindingBox({ finding }: { finding: Finding }) {
 
 interface MedicalImageViewerProps {
   image: ImageData
+  activeFindingId?: string | null
+  onFindingClick?: (id: string) => void
 }
 
-export default function MedicalImageViewer({ image }: MedicalImageViewerProps) {
+export default function MedicalImageViewer({ image, activeFindingId, onFindingClick }: MedicalImageViewerProps) {
   const [zoom, setZoom] = useState(1)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const findings = image.findings || []
+
+  const handleFindingHover = (id: string | null) => {
+    setHoveredId(id)
+  }
 
   return (
     <div style={s.container}>
@@ -207,9 +216,21 @@ export default function MedicalImageViewer({ image }: MedicalImageViewerProps) {
                 </div>
               </foreignObject>
             )}
-            {findings.map(f => (
-              <FindingBox key={f.id} finding={f} />
-            ))}
+            {findings.map(f => {
+    const isActive = activeFindingId === f.id
+    const isHovered = hoveredId === f.id
+    return (
+      <g
+        key={f.id}
+        onMouseEnter={() => handleFindingHover(f.id)}
+        onMouseLeave={() => handleFindingHover(null)}
+        onClick={() => onFindingClick?.(f.id)}
+        style={{ cursor: onFindingClick ? 'pointer' : 'default' }}
+      >
+        <FindingBox finding={f} active={isActive || isHovered} />
+      </g>
+    )
+  })}
           </svg>
         </div>
         <div style={s.viewportInfo}>

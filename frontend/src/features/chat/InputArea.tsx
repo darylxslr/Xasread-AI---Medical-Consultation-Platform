@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
 import { Paperclip, Mic, SendHorizonal, Shield } from 'lucide-react'
-import { useMediaQuery } from '../hooks/useMediaQuery'
 
 interface InputAreaProps {
   onSend: (text: string, fileName?: string) => void
@@ -31,15 +30,16 @@ const s = {
     display: 'flex',
     gap: 4,
   } as const,
-  modeChip: (active: boolean) => ({
+  modeChip: (active: boolean, disabled: boolean = false) => ({
     padding: '4px 12px',
     borderRadius: 'var(--radius-pill)',
     border: `1px solid ${active ? 'var(--primary)' : 'var(--border-color)'}`,
     fontSize: 11,
     fontWeight: 600,
-    cursor: 'pointer' as const,
-    background: active ? 'var(--primary-light)' : 'transparent',
-    color: active ? 'var(--primary)' : 'var(--text-muted)',
+    cursor: disabled ? 'default' as const : 'pointer' as const,
+    background: active ? 'var(--primary-light)' : disabled ? 'transparent' : 'transparent',
+    color: active ? 'var(--primary)' : disabled ? 'var(--text-muted)' : 'var(--text-muted)',
+    opacity: disabled ? 0.4 : 1,
   }),
   hipaaBadge: {
     display: 'flex',
@@ -122,7 +122,7 @@ const s = {
   } as const,
 }
 
-const modeKeys = ['simple', 'standard', 'advanced']
+const modeKeys = ['plain', 'standard', 'clinical']
 
 function loadModeFromStorage(): string {
   try {
@@ -142,9 +142,9 @@ function saveModeToStorage(mode: string) {
 }
 
 const modeChipLabels: Record<string, string> = {
-  simple: 'Simple',
+  plain: 'Plain',
   standard: 'Standard',
-  advanced: 'Advanced',
+  clinical: 'Clinical',
 }
 
 export default function InputArea({ onSend, onFilePick, pendingFile }: InputAreaProps) {
@@ -211,10 +211,8 @@ export default function InputArea({ onSend, onFilePick, pendingFile }: InputArea
     saveModeToStorage(m)
   }
 
-  const isMobile = useMediaQuery('(max-width: 639px)')
-
-  const wrapperStyle = { ...s.wrapper, padding: isMobile ? '8px 12px 16px' : '12px 24px 20px' }
-  const containerStyle = { ...s.container, maxWidth: isMobile ? '100%' : 800 }
+  const wrapperStyle = { ...s.wrapper, padding: 'var(--input-padding)' }
+  const containerStyle = { ...s.container, maxWidth: 'var(--input-container-max)' }
 
   return (
     <div style={wrapperStyle}>
@@ -237,15 +235,30 @@ export default function InputArea({ onSend, onFilePick, pendingFile }: InputArea
       <div style={containerStyle}>
         <div style={s.topRow}>
           <div style={s.modeGroup}>
-            {modeKeys.map(m => (
-              <button
-                key={m}
-                style={s.modeChip(mode === m)}
-                onClick={() => handleModeClick(m)}
-              >
-                {modeChipLabels[m]}
-              </button>
-            ))}
+            {modeKeys.map(m => {
+              const fileAttached = !!pendingFile
+              return (
+                <button
+                  key={m}
+                  style={s.modeChip(mode === m, fileAttached)}
+                  onClick={() => !fileAttached && handleModeClick(m)}
+                  title={fileAttached ? 'Image analysis uses Clinical AI automatically' : modeChipLabels[m]}
+                >
+                  {modeChipLabels[m]}
+                </button>
+              )
+            })}
+            {pendingFile && (
+              <span style={{
+                fontSize: 10,
+                color: 'var(--primary)',
+                fontWeight: 600,
+                marginLeft: 6,
+                whiteSpace: 'nowrap',
+              }}>
+                🔬 Image Analysis
+              </span>
+            )}
           </div>
           <div style={s.hipaaBadge}>
             <Shield size={12} />

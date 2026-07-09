@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
-from models import User
+from app.models import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -88,7 +88,7 @@ async def test_create_message_conversation_not_found(client: AsyncClient, test_u
 async def test_user_cannot_access_other_users_messages(
     client: AsyncClient, test_user: User, auth_headers: dict, db_session: AsyncSession
 ):
-    from models import User, Conversation
+    from app.models import User, Conversation
 
     other_user = User(
         email="other2@example.com",

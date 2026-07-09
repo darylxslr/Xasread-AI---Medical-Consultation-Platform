@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useMediaQuery } from '../hooks/useMediaQuery'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 
 const prefixes = ["Last visit:", "Previous:", "Your last consultation:"]
 
@@ -41,7 +41,7 @@ export default function FreshBanner({ lastConvTitle, onSend }: FreshBannerProps)
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: isMobile ? '0 16px' : '0 32px',
+      padding: 'var(--banner-padding)',
       textAlign: 'center',
     }}>
       <p style={{ fontSize: isMobile ? 15 : 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>

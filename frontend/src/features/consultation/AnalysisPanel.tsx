@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle, Droplets, Heart, Stethoscope, FileText, Info, Thermometer, Activity, Brain } from 'lucide-react'
-import type { ClinicalData, SimpleData, AlertItem } from '../types'
+import type { ClinicalData, SimpleData, AlertItem } from '../../types'
 
 const iconMap: Record<string, typeof Activity> = {
   lungs: Stethoscope,

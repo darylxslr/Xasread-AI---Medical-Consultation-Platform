@@ -2,8 +2,8 @@ import pytest
 from httpx import AsyncClient
 from unittest.mock import patch, MagicMock
 
-from models import User, Conversation
-from database import get_db
+from app.models import User, Conversation
+from app.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 

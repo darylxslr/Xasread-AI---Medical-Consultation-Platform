@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useTheme } from '../context/ThemeContext'
+import { useTheme } from '../../context/ThemeContext'
 import { X, Sun, Moon, Monitor, Type, LogOut } from 'lucide-react'
-import type { AppSettings } from '../types'
+import type { AppSettings } from '../../types'
 
 interface SettingsPanelProps {
   onClose: () => void
@@ -146,27 +146,6 @@ export default function SettingsPanel({ onClose, onSignOut }: SettingsPanelProps
                   }}
                 >
                   {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10, display: 'block' }}>Response Detail</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {(['standard', 'concise', 'detailed'] as const).map(m => (
-                <button
-                  key={m}
-                  className={`settings-btn${settings.chatMode === m ? ' active' : ''}`}
-                  onClick={() => updateSetting('chatMode', m)}
-                  style={{
-                    flex: 1, padding: '10px 12px', borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)', background: 'transparent',
-                    color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600,
-                    cursor: 'pointer', textTransform: 'capitalize',
-                  }}
-                >
-                  {m}
                 </button>
               ))}
             </div>

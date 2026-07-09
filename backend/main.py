@@ -3,11 +3,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from database import init_db
-from auth import router as auth_router
-from conversations import router as conversations_router
-from messages import router as messages_router
-from chat import router as chat_router
+from app.database import init_db
+from app.api.v1.auth import router as auth_router
+from app.api.v1.conversations import router as conversations_router
+from app.api.v1.messages import router as messages_router
+from app.api.v1.chat import router as chat_router
 
 
 @asynccontextmanager

@@ -1,4 +1,5 @@
 import httpx
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -162,7 +163,6 @@ async def chat_message(
     ai_msg = Message(conversation_id=conv_id, role="assistant", content=ai_content)
     db.add(ai_msg)
 
-    from datetime import datetime, timezone
     conv.updated_at = datetime.now(timezone.utc)
 
     await db.commit()
@@ -211,7 +211,6 @@ async def rephrase_message(
         raise HTTPException(status_code=502, detail="Rephrase service unavailable")
 
     msg.content = rephrased
-    from datetime import datetime, timezone
     conv_result = await db.execute(select(Conversation).where(Conversation.id == conv_id))
     conv = conv_result.scalar_one_or_none()
     if conv:

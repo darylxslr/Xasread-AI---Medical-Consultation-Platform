@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Bot, Copy, Check, Loader } from 'lucide-react'
-import MedicalImageViewer from './MedicalImageViewer'
-import AnalysisPanel from './AnalysisPanel'
-import type { Message } from '../types'
+import DOMPurify from 'isomorphic-dompurify'
+import MedicalImageViewer from '../consultation/MedicalImageViewer'
+import AnalysisPanel from '../consultation/AnalysisPanel'
+import type { Message } from '../../types'
+import { renderMarkdown } from '../../lib/markdown'
 
 interface AIResponseProps {
   message: Message
@@ -20,65 +22,6 @@ function formatTimestamp(iso?: string): string {
   const datePart = d.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   const timePart = d.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour12: true, hour: 'numeric', minute: '2-digit' })
   return `${datePart} at ${timePart}`
-}
-
-function inlineFormat(s: string): string {
-  return s
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\*/g, '')
-}
-
-function renderMarkdown(text: string): string {
-  let html = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-
-  const lines = html.split('\n')
-  const out: string[] = []
-  let inList = false
-  let listType: 'ul' | 'ol' | null = null
-
-  for (const line of lines) {
-    const ulMatch = line.match(/^[-*] (.+)$/)
-    const olMatch = line.match(/^\d+[.)] (.+)$/)
-    const isEmpty = line.trim() === ''
-
-    if (ulMatch) {
-      if (!inList || listType !== 'ul') {
-        if (inList) out.push(listType === 'ul' ? '</ul>' : '</ol>')
-        out.push('<ul>')
-        inList = true
-        listType = 'ul'
-      }
-      out.push(`<li>${inlineFormat(ulMatch[1])}</li>`)
-    } else if (olMatch) {
-      if (!inList || listType !== 'ol') {
-        if (inList) out.push(listType === 'ul' ? '</ul>' : '</ol>')
-        out.push('<ol>')
-        inList = true
-        listType = 'ol'
-      }
-      out.push(`<li>${inlineFormat(olMatch[1])}</li>`)
-    } else {
-      if (inList) {
-        out.push(listType === 'ul' ? '</ul>' : '</ol>')
-        inList = false
-        listType = null
-      }
-      if (!isEmpty) {
-        out.push(inlineFormat(line))
-      }
-    }
-  }
-  if (inList) {
-    out.push(listType === 'ul' ? '</ul>' : '</ol>')
-  }
-
-  html = out.join('\n')
-  html = html.replace(/\n/g, '<br/>')
-  return html
 }
 
 const s = {
@@ -129,13 +72,34 @@ const s = {
   } as const,
   message: {
     fontSize: 'var(--chat-font-size, 14px)',
-    lineHeight: 1.7,
+    lineHeight: 1.9,
     color: 'var(--text-secondary)',
     marginBottom: 16,
+    textAlign: 'justify',
   } as const,
 }
 
-const animatedIds = new Set<string>()
+function getAnimatedIds(): string[] {
+  try {
+    const stored = sessionStorage.getItem('xasread-animated')
+    return stored ? JSON.parse(stored) : []
+  } catch { return [] }
+}
+function addAnimatedId(id: string) {
+  try {
+    const ids = getAnimatedIds()
+    if (!ids.includes(id)) {
+      ids.push(id)
+      sessionStorage.setItem('xasread-animated', JSON.stringify(ids))
+    }
+  } catch { /* ignore */ }
+}
+function removeAnimatedId(id: string) {
+  try {
+    const ids = getAnimatedIds().filter((i: string) => i !== id)
+    sessionStorage.setItem('xasread-animated', JSON.stringify(ids))
+  } catch { /* ignore */ }
+}
 
 export default function AIResponse({ message, onRephrase }: AIResponseProps) {
   const [chatMode, setChatMode] = useState(() => {
@@ -145,12 +109,12 @@ export default function AIResponse({ message, onRephrase }: AIResponseProps) {
     } catch {}
     return 'standard'
   })
-  const [typedLen, setTypedLen] = useState(() => animatedIds.has(message.id) ? (message.content || '').length : 0)
+  const [typedLen, setTypedLen] = useState(() => getAnimatedIds().includes(message.id) ? (message.content || '').length : 0)
   const timerRef = useRef<number | null>(null)
   const fullText = message.content || ''
 
   useEffect(() => {
-    if (animatedIds.has(message.id) || typedLen === fullText.length) {
+    if (getAnimatedIds().includes(message.id) || typedLen === fullText.length) {
       setTypedLen(fullText.length)
       return
     }
@@ -168,7 +132,7 @@ export default function AIResponse({ message, onRephrase }: AIResponseProps) {
       if (next < fullText.length) {
         timerRef.current = requestAnimationFrame(animate)
       } else {
-        animatedIds.add(message.id)
+        addAnimatedId(message.id)
       }
     }
 
@@ -195,10 +159,21 @@ export default function AIResponse({ message, onRephrase }: AIResponseProps) {
   const [copied, setCopied] = useState(false)
   const [showLevels, setShowLevels] = useState(false)
   const [isRephrasing, setIsRephrasing] = useState(false)
+  const [activeFindingId, setActiveFindingId] = useState<string | null>(null)
   const levelRef = useRef<HTMLDivElement>(null)
 
-  const levelLabels: Record<string, string> = { simple: 'Simple', standard: 'Standard', advanced: 'Advanced' }
+  const levelLabels: Record<string, string> = { plain: 'Plain', standard: 'Standard', clinical: 'Clinical' }
   const currentLevel = levelLabels[chatMode] || chatMode
+  const levelColors: Record<string, string> = { plain: 'var(--text-muted)', standard: 'var(--primary)', clinical: '#D4782F' }
+  const levelDots: Record<string, string> = { plain: '○○○', standard: '●○○', clinical: '●●●' }
+  const levelBadgeStyle = (lvl: string) => ({
+    ...s.badge,
+    background: 'var(--bg-main)',
+    cursor: 'pointer' as const,
+    userSelect: 'none' as const,
+    color: levelColors[lvl] || 'var(--primary)',
+    border: `1px solid ${levelColors[lvl] || 'var(--primary)'}`,
+  })
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -218,6 +193,8 @@ export default function AIResponse({ message, onRephrase }: AIResponseProps) {
   const handleLevelChange = useCallback(async (level: string) => {
     setShowLevels(false)
     setIsRephrasing(true)
+    removeAnimatedId(message.id)
+    setTypedLen(0)
     try {
       const s = localStorage.getItem('xasread-settings')
       const settings = s ? JSON.parse(s) : {}
@@ -242,11 +219,11 @@ export default function AIResponse({ message, onRephrase }: AIResponseProps) {
           <span style={s.badge}>v3.0</span>
           <div ref={levelRef} style={{ position: 'relative' }}>
             <span
-              style={{ ...s.badge, background: 'var(--bg-main)', cursor: 'pointer', userSelect: 'none' }}
+              style={levelBadgeStyle(chatMode)}
               onClick={() => !isRephrasing && setShowLevels(o => !o)}
               title="Change response level"
             >
-              {isRephrasing ? <Loader size={10} style={{ animation: 'spin 0.8s linear infinite' }} /> : currentLevel}
+              {isRephrasing ? <Loader size={10} style={{ animation: 'spin 0.8s linear infinite' }} /> : `${levelDots[chatMode] || ''} ${currentLevel}`}
             </span>
             {showLevels && (
               <div style={{
@@ -293,15 +270,30 @@ export default function AIResponse({ message, onRephrase }: AIResponseProps) {
           )}
         </div>
         <div style={s.message}>
-          <span dangerouslySetInnerHTML={{ __html: visibleHtml }} />
+          <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(visibleHtml) }} />
           {isTyping && <span style={{ display: 'inline-block', width: 2, height: '1em', background: 'var(--primary)', marginLeft: 2, animation: 'blink 0.6s step-end infinite', verticalAlign: 'text-bottom' }} />}
         </div>
-        {message.image && <MedicalImageViewer image={message.image} />}
+        {message.image && <MedicalImageViewer image={message.image} activeFindingId={activeFindingId} onFindingClick={setActiveFindingId} />}
         {message.clinical && message.simple && (
           <AnalysisPanel clinical={message.clinical} simple={message.simple} />
         )}
       </div>
-      <style>{`@keyframes blink { 50% { opacity: 0; } }@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        p { margin: 0 0 16px 0; }
+        hr { border: none; border-top: 1px solid var(--border-color); margin: 24px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+        th, td { border: 1px solid var(--border-color); padding: 10px 12px; text-align: left; vertical-align: top; }
+        th { background: var(--primary-light); color: var(--text-primary); font-weight: 600; }
+        td { color: var(--text-secondary); }
+        h1, h2, h3 { color: var(--text-primary); margin: 16px 0 8px; }
+        h1 { font-size: 16px; }
+        h2 { font-size: 15px; }
+        h3 { font-size: 14px; }
+        ul, ol { padding-left: 20px; margin: 12px 0; }
+        li { margin-bottom: 8px; }
+      `}</style>
     </div>
   )
 }

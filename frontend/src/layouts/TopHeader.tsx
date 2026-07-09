@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { Shield, MoreVertical, LogOut, Info, AlertCircle, Download, Menu } from 'lucide-react'
-import { useMediaQuery } from '../hooks/useMediaQuery'
 
 interface TopHeaderProps {
   onEndSession: () => void
@@ -131,7 +130,6 @@ function PulseDot() {
 }
 
 export default function TopHeader({ onEndSession, onExport, onToggleSidebar }: TopHeaderProps) {
-  const isMobile = useMediaQuery('(max-width: 639px)')
   const [menuOpen, setMenuOpen] = useState(false)
   const [alertMsg, setAlertMsg] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -155,7 +153,7 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar }: T
     }
   }, [alertMsg])
 
-  const headerStyle = { ...s.header, padding: isMobile ? '0 12px' : '0 24px' }
+  const headerStyle = { ...s.header, padding: 'var(--header-padding)' }
 
   return (
     <header style={headerStyle}>
@@ -163,13 +161,13 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar }: T
         .header-icon-btn:hover { background: var(--bg-hover) !important; color: var(--text-secondary) !important; }
         .header-dropdown-item:hover { background: var(--bg-hover) !important; }
       `}</style>
-      <div style={{ ...s.left, gap: isMobile ? 8 : 16 }}>
+      <div style={{ ...s.left, gap: 'var(--header-gap)' }}>
         <button className="header-icon-btn hamburger-btn" style={s.iconBtn} onClick={onToggleSidebar}>
           <Menu size={18} />
         </button>
-        <span style={s.sessionLabel}>Session</span>
-        <span style={s.sessionId}>{sessionId}</span>
-        <div style={s.statusBadge}>
+        <span className="header-mobile-hide" style={s.sessionLabel}>Session</span>
+        <span className="header-mobile-hide" style={s.sessionId}>{sessionId}</span>
+        <div className="header-mobile-hide" style={s.statusBadge}>
           <PulseDot />
           Model Active
         </div>

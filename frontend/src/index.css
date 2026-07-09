@@ -32,6 +32,35 @@
   --viewer-border: #2A2A2A;
   --pulse-color: #22C55E;
   --chat-font-size: 14px;
+  --msg-bubble-max: 75%;
+  --header-padding: 0 24px;
+  --header-gap: 16px;
+  --chat-padding: 24px 32px;
+  --chat-max-width: 720px;
+  --welcome-padding: 40px 32px;
+  --content-ml: var(--sidebar-width);
+  --banner-padding: 0 32px;
+  --input-padding: 12px 24px 20px;
+  --input-container-max: 800px;
+  --modal-padding: 24px;
+  --modal-width: 360px;
+}
+
+@media (max-width: 639px) {
+  :root {
+    --msg-bubble-max: 88%;
+    --header-padding: 0 16px;
+    --header-gap: 8px;
+    --chat-padding: 16px 16px;
+    --chat-max-width: 100%;
+    --welcome-padding: 24px 20px;
+    --content-ml: 0px;
+    --banner-padding: 0 20px;
+    --input-padding: 8px 16px 16px;
+    --input-container-max: 100%;
+    --modal-padding: 20px;
+    --modal-width: calc(100vw - 32px);
+  }
 }
 
 [data-theme="dark"] {
@@ -137,6 +166,13 @@ input, textarea {
   transform: translateX(0);
 }
 
+@media (max-width: 639px) {
+  .sidebar-desktop { display: none !important; }
+  .hamburger-btn { display: flex !important; }
+  .header-mobile-hide { display: none !important; }
+}
+
 @media (min-width: 640px) {
   .hamburger-btn { display: none !important; }
+  .sidebar-mobile { display: none !important; }
 }

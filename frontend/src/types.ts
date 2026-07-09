@@ -60,12 +60,16 @@ export interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  content_plain?: string
+  content_standard?: string
+  content_clinical?: string
   created_at?: string
   fileName?: string
   image?: ImageData
   findings?: Finding[]
   clinical?: ClinicalData
   simple?: SimpleData
+  rephraseVersion?: number
 }
 
 export interface Conversation {
@@ -88,7 +92,7 @@ export interface ThemeContextType {
 
 export interface AppSettings {
   fontSize: 'small' | 'medium' | 'large'
-  chatMode: 'simple' | 'standard' | 'advanced' | 'concise' | 'detailed'
+  chatMode: 'plain' | 'standard' | 'clinical'
 }
 
 export interface UserOut {

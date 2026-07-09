@@ -9,9 +9,9 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from main import app
-from database import Base, get_db
-from models import User
-from auth import create_jwt_token
+from app.database import Base, get_db
+from app.models import User
+from app.core.security import create_jwt_token
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
@@ -89,7 +89,7 @@ def mock_google_oauth():
         "picture": "https://example.com/picture.jpg",
     }
 
-    with patch("auth.settings") as mock_settings:
+    with patch("app.api.v1.auth.settings") as mock_settings:
         mock_settings.google_client_id = "test_client_id"
         mock_settings.google_client_secret = "test_client_secret"
         mock_settings.google_auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -100,7 +100,7 @@ def mock_google_oauth():
         mock_settings.jwt_secret = "test-jwt-secret-key-32-chars-long!!!"
         mock_settings.jwt_expiry_hours = 24
 
-        with patch("auth.httpx.AsyncClient") as mock_client:
+        with patch("app.api.v1.auth.httpx.AsyncClient") as mock_client:
             instance = mock_client.return_value.__aenter__.return_value
             instance.post.return_value = mock_token_response
             instance.get.return_value = mock_userinfo_response

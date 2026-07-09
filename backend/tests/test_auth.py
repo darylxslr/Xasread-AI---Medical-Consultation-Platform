@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 from httpx import AsyncClient
 from unittest.mock import patch, MagicMock
 
-from auth import create_jwt_token, decode_jwt_token
-from models import User
-from database import get_db
+from app.core.security import create_jwt_token, decode_jwt_token
+from app.models import User
+from app.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -28,7 +28,7 @@ async def test_health(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_google_auth_no_credentials(client: AsyncClient):
-    with patch("auth.settings") as mock_settings:
+    with patch("app.api.v1.auth.settings") as mock_settings:
         mock_settings.google_client_id = ""
         mock_settings.google_client_secret = ""
         mock_settings.jwt_secret = "test-secret"
@@ -57,7 +57,7 @@ async def test_callback_no_code(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_callback_invalid_code(client: AsyncClient, mock_google_oauth):
-    import auth as auth_module
+    import app.api.v1.auth as auth_module
     state = "test_state_123"
     auth_module.oauth_states[state] = datetime.now(timezone.utc)
 
@@ -73,7 +73,7 @@ async def test_callback_invalid_code(client: AsyncClient, mock_google_oauth):
 
 @pytest.mark.asyncio
 async def test_callback_valid_code(client: AsyncClient, mock_google_oauth, db_session: AsyncSession):
-    import auth as auth_module
+    import app.api.v1.auth as auth_module
     state = "test_state_valid"
     auth_module.oauth_states[state] = datetime.now(timezone.utc)
 
@@ -141,7 +141,7 @@ async def test_guest_login(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_user_created_on_first_login(client: AsyncClient, mock_google_oauth, db_session: AsyncSession):
-    import auth as auth_module
+    import app.api.v1.auth as auth_module
     state = "test_state_first"
     auth_module.oauth_states[state] = datetime.now(timezone.utc)
 
@@ -158,7 +158,7 @@ async def test_user_created_on_first_login(client: AsyncClient, mock_google_oaut
 
 @pytest.mark.asyncio
 async def test_user_updated_on_subsequent_login(client: AsyncClient, db_session: AsyncSession):
-    import auth as auth_module
+    import app.api.v1.auth as auth_module
     state = "test_state_update"
     auth_module.oauth_states[state] = datetime.now(timezone.utc)
 
@@ -175,7 +175,7 @@ async def test_user_updated_on_subsequent_login(client: AsyncClient, db_session:
         "picture": "https://example.com/new_pic.jpg",
     }
 
-    with patch("auth.settings") as mock_settings:
+    with patch("app.api.v1.auth.settings") as mock_settings:
         mock_settings.google_client_id = "test_client_id"
         mock_settings.google_client_secret = "test_client_secret"
         mock_settings.google_token_url = "https://oauth2.googleapis.com/token"
@@ -185,7 +185,7 @@ async def test_user_updated_on_subsequent_login(client: AsyncClient, db_session:
         mock_settings.jwt_secret = "test-jwt-secret-key-32-chars-long!!!"
         mock_settings.jwt_expiry_hours = 24
 
-        with patch("auth.httpx.AsyncClient") as mock_client:
+        with patch("app.api.v1.auth.httpx.AsyncClient") as mock_client:
             instance = mock_client.return_value.__aenter__.return_value
             instance.post.return_value = mock_token_response
             instance.get.return_value = mock_userinfo_response

@@ -1,3 +1,5 @@
+import ssl
+
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
@@ -18,23 +20,22 @@ def normalize_database_url(url: str) -> str:
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     parsed = make_url(url)
     if parsed.drivername == "postgresql+asyncpg":
-        query = dict(parsed.query)
-        sslmode = query.pop("sslmode", None)
-        if sslmode and sslmode != "disable":
-            query.setdefault("ssl", "true")
-        query.pop("channel_binding", None)
-        return parsed.set(query=query).render_as_string(hide_password=False)
+        return parsed.set(query={}).render_as_string(hide_password=False)
     return str(parsed)
 
 
 def get_engine() -> AsyncEngine:
     global _engine
     if _engine is None:
+        connect_args = {}
+        if settings.database_url.startswith(("postgres://", "postgresql://")):
+            connect_args["ssl"] = ssl.create_default_context()
         _engine = create_async_engine(
             normalize_database_url(settings.database_url),
             echo=False,
             future=True,
             poolclass=NullPool,
+            connect_args=connect_args,
         )
     return _engine
 

@@ -1,3 +1,7 @@
+import base64
+import hashlib
+import hmac
+import json
 import secrets
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlencode
@@ -18,6 +22,35 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 oauth_states: dict[str, datetime] = {}
 
 
+def create_oauth_state() -> str:
+    issued_at = int(datetime.now(timezone.utc).timestamp())
+    nonce = secrets.token_urlsafe(24)
+    payload = {"iat": issued_at, "nonce": nonce}
+    payload_bytes = json.dumps(payload, separators=(",", ":")).encode()
+    payload_b64 = base64.urlsafe_b64encode(payload_bytes).rstrip(b"=").decode()
+    signature = hmac.new(settings.jwt_secret.encode(), payload_b64.encode(), hashlib.sha256).digest()
+    signature_b64 = base64.urlsafe_b64encode(signature).rstrip(b"=").decode()
+    return f"{payload_b64}.{signature_b64}"
+
+def verify_oauth_state(state: str | None) -> bool:
+    if not state:
+        return False
+    legacy_state_time = oauth_states.pop(state, None)
+    if legacy_state_time:
+        return datetime.now(timezone.utc) - legacy_state_time <= timedelta(minutes=10)
+    if "." not in state:
+        return False
+    payload_b64, signature_b64 = state.rsplit(".", 1)
+    expected = hmac.new(settings.jwt_secret.encode(), payload_b64.encode(), hashlib.sha256).digest()
+    actual = base64.urlsafe_b64decode(signature_b64 + "=" * (-len(signature_b64) % 4))
+    if not hmac.compare_digest(expected, actual):
+        return False
+    payload_bytes = base64.urlsafe_b64decode(payload_b64 + "=" * (-len(payload_b64) % 4))
+    payload = json.loads(payload_bytes)
+    issued_at = datetime.fromtimestamp(payload["iat"], tz=timezone.utc)
+    return datetime.now(timezone.utc) - issued_at <= timedelta(minutes=10)
+
+
 @router.get("/google")
 async def google_login():
     if not settings.google_client_id or not settings.google_client_secret:
@@ -26,8 +59,7 @@ async def google_login():
             detail="Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env",
         )
 
-    state = secrets.token_urlsafe(32)
-    oauth_states[state] = datetime.now(timezone.utc)
+    state = create_oauth_state()
 
     params = {
         "client_id": settings.google_client_id,
@@ -51,12 +83,12 @@ async def google_callback(
     if not code:
         raise HTTPException(status_code=400, detail="Missing authorization code")
 
-    if state:
-        state_time = oauth_states.pop(state, None)
-        if state_time and (datetime.now(timezone.utc) - state_time) > timedelta(minutes=10):
-            raise HTTPException(status_code=400, detail="OAuth state expired")
-    else:
-        raise HTTPException(status_code=400, detail="Missing state parameter")
+    try:
+        state_is_valid = verify_oauth_state(state)
+    except Exception:
+        state_is_valid = False
+    if not state_is_valid:
+        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
 
     if not settings.google_client_id or not settings.google_client_secret:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")

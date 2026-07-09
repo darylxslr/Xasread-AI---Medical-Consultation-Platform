@@ -1,42 +1,58 @@
 {
-  "services": {
-    "frontend": {
-      "root": "frontend",
-      "framework": "vite"
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
     },
-    "backend": {
-      "root": "backend",
-      "entrypoint": "main:app"
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
-  },
-  "rewrites": [
+  ],
+  "routes": [
     {
-      "source": "/api(.*)?",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "src": "/auth/callback",
+      "dest": "frontend/index.html"
     },
     {
-      "source": "/auth(.*)?",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "src": "/auth/(.*)",
+      "dest": "api/index.py"
     },
     {
-      "source": "/conversations(.*)?",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "src": "/conversations(.*)",
+      "dest": "api/index.py"
     },
     {
-      "source": "(.*)",
-      "destination": {
-        "type": "service",
-        "service": "frontend"
-      }
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/health",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/docs(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/openapi.json",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "frontend/assets/$1"
+    },
+    {
+      "src": "/(.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|json))",
+      "dest": "frontend/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/index.html"
     }
   ]
 }

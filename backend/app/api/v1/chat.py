@@ -5,7 +5,6 @@ from sqlalchemy.orm import load_only
 from sqlalchemy import select
 from pydantic import BaseModel
 
-from config import settings
 from app.database import get_db
 from app.models import User, Conversation, Message
 from app.schemas.message import MessageCreate, MessageOut, RephraseRequest, FileInfo, ImageData

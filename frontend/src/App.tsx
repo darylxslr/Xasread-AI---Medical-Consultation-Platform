@@ -57,13 +57,6 @@ function ChatArea({ messages, onRephrase, isTyping }: { messages: Message[]; onR
     return () => observer.disconnect()
   }, [scrollToBottom])
 
-  const handleEdit = (id: string, newContent: string) => {
-    console.log('Edit message:', id, newContent)
-  }
-  const handleDelete = (id: string) => {
-    console.log('Delete message:', id)
-  }
-
   return (
     <div ref={containerRef} style={{
       flex: 1,
@@ -75,7 +68,7 @@ function ChatArea({ messages, onRephrase, isTyping }: { messages: Message[]; onR
     }}>
       <div ref={innerRef} style={{ maxWidth: 'var(--chat-max-width)', margin: '0 auto' }}>
         {messages.map(msg => {
-          if (msg.role === 'user') return <UserMessage key={msg.id} message={msg} onEdit={handleEdit} onDelete={handleDelete} />
+          if (msg.role === 'user') return <UserMessage key={msg.id} message={msg} />
           if (msg.role === 'assistant') return <AIResponse key={`${msg.id}-${msg.rephraseVersion || 0}`} message={msg} onRephrase={onRephrase} />
           return null
         })}
@@ -329,7 +322,6 @@ function AuthenticatedApp() {
   const randomSuffix = useMemo(() => String(Math.floor(Math.random() * 9000) + 1000), [])
   const sessionId = useMemo(() => `SID-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomSuffix}`, [randomSuffix])
   const shortId = useMemo(() => `SID-${randomSuffix}`, [randomSuffix])
-  const [guestExpiresAt, setGuestExpiresAt] = useState<string | null>(null)
   const guestStorageKey = useMemo(() =>
     'xasread-guest-data-' + (guestUsername || 'default') + '-' + (guestToken || 'anon'),
     [guestUsername, guestToken]
@@ -344,31 +336,18 @@ function AuthenticatedApp() {
   }, [])
 
   useEffect(() => {
-    if (!isGuest) {
-      setGuestExpiresAt(null)
-      return
-    }
+    if (!isGuest) return
     try {
       const stored = localStorage.getItem(guestStorageKey)
       if (stored) {
         const data = JSON.parse(stored)
-        const savedAt = new Date(data.savedAt).getTime()
-        const expiresAt = savedAt + 24 * 60 * 60 * 1000
-        if (Date.now() < expiresAt) {
-          setConversations(data.conversations || [])
-          setGuestMessages(data.messages || {})
-          setGuestExpiresAt(new Date(expiresAt).toISOString())
-          if (data.activeConv && data.conversations?.some((c: { id: string }) => c.id === data.activeConv)) {
-            setActiveConv(data.activeConv)
-          }
-          return
+        setConversations(data.conversations || [])
+        setGuestMessages(data.messages || {})
+        if (data.activeConv && data.conversations?.some((c: { id: string }) => c.id === data.activeConv)) {
+          setActiveConv(data.activeConv)
         }
-        localStorage.removeItem(guestStorageKey)
       }
-      setGuestExpiresAt(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
-    } catch {
-      setGuestExpiresAt(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
-    }
+    } catch { /* ignore */ }
   }, [isGuest, guestStorageKey])
 
   useEffect(() => {
@@ -383,7 +362,6 @@ function AuthenticatedApp() {
       conversations,
       messages: guestMessages,
       activeConv,
-      savedAt: new Date().toISOString(),
     }
     localStorage.setItem(guestStorageKey, JSON.stringify(payload))
   }, [isGuest, guestStorageKey, conversations, guestMessages, activeConv])
@@ -498,7 +476,7 @@ function AuthenticatedApp() {
     }
   }
 
-  const handleSend = useCallback(async (text: string, _fileName?: string) => {
+  const handleSend = useCallback(async (text: string) => {
     let targetConv = activeConv
     const title = text.length > 50 ? text.slice(0, 50) + '...' : text
     const now = new Date().toISOString()
@@ -703,7 +681,6 @@ function AuthenticatedApp() {
           avatarUrl={user?.avatar_url}
           isOpen={sidebarOpen}
           onToggle={toggleSidebar}
-          guestExpiresAt={guestExpiresAt}
           onOpenSettings={() => setShowSettings(true)}
         />
 

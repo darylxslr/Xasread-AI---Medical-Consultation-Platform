@@ -19,9 +19,6 @@ from app.core.security import create_jwt_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-oauth_states: dict[str, datetime] = {}
-
-
 def create_oauth_state(origin: str) -> str:
     issued_at = int(datetime.now(timezone.utc).timestamp())
     nonce = secrets.token_urlsafe(24)
@@ -35,9 +32,6 @@ def create_oauth_state(origin: str) -> str:
 def verify_oauth_state(state: str | None) -> dict | None:
     if not state:
         return None
-    legacy_state_time = oauth_states.pop(state, None)
-    if legacy_state_time:
-        return {"origin": settings.frontend_url}
     if "." not in state:
         return None
     payload_b64, signature_b64 = state.rsplit(".", 1)

@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { Shield, MoreVertical, LogOut, Info, AlertCircle, Download, Menu } from 'lucide-react'
+import { Shield, MoreVertical, LogOut, Info, AlertCircle, Menu } from 'lucide-react'
 import { useToast } from '../context/ToastContext'
 import AboutModal from './AboutModal'
 
 interface TopHeaderProps {
   onEndSession: () => void
-  onExport?: () => void
   onToggleSidebar?: () => void
   sessionId: string
 }
@@ -136,7 +135,7 @@ function PulseDot() {
   )
 }
 
-export default function TopHeader({ onEndSession, onExport, onToggleSidebar, sessionId }: TopHeaderProps) {
+export default function TopHeader({ onEndSession, onToggleSidebar, sessionId }: TopHeaderProps) {
   const { toast } = useToast()
   const [menuOpen, setMenuOpen] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
@@ -188,12 +187,6 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar, ses
                 <LogOut size={14} />
                 End Session
               </button>
-              {onExport && (
-                <button className="header-dropdown-item" style={s.dropdownItem} onClick={() => { setMenuOpen(false); onExport(); }}>
-                  <Download size={14} />
-                  Export Conversation
-                </button>
-              )}
               <button className="header-dropdown-item" style={s.dropdownItem} onClick={() => { setMenuOpen(false); setShowAbout(true); }}>
                 <Info size={14} />
                 About Xasread

@@ -24,12 +24,6 @@ export function hasStoredGuest(): boolean {
   return !!localStorage.getItem('xasread-guest-user') && !!localStorage.getItem('xasread-guest-token')
 }
 
-export function isGuestSessionExpired(): boolean {
-  const createdAt = localStorage.getItem('xasread-guest-created-at')
-  if (!createdAt) return true
-  return Date.now() - Number(createdAt) > 24 * 60 * 60 * 1000
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserOut | null>(null)
   const [token, setToken] = useState<string | null>(() => {
@@ -108,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const continueAsGuest = useCallback((name: string) => {
-    if (hasStoredGuest() && !isGuestSessionExpired()) {
+    if (hasStoredGuest()) {
       const existingName = localStorage.getItem('xasread-guest-user')
       const existingToken = localStorage.getItem('xasread-guest-token')
       if (existingName && existingToken) {
@@ -147,12 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const getStoredGuestName = useCallback((): string | null => {
-    if (!hasStoredGuest() || isGuestSessionExpired()) return null
+    if (!hasStoredGuest()) return null
     return localStorage.getItem('xasread-guest-user')
   }, [])
 
   const resumeGuestSession = useCallback(() => {
-    if (!hasStoredGuest() || isGuestSessionExpired()) return
+    if (!hasStoredGuest()) return
     const name = localStorage.getItem('xasread-guest-user')
     const token = localStorage.getItem('xasread-guest-token')
     if (!name || !token) return
@@ -190,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setGuestToken(null)
     sessionStorage.removeItem('xasread-auth-mode')
     if (isGuest) {
-      // Guest: keep localStorage data so they can resume within 24h
+      // Guest: keep localStorage data so they can resume later
       return
     }
     // Google user: clear everything

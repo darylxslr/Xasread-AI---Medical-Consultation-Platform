@@ -58,8 +58,7 @@ async def test_callback_no_code(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_callback_invalid_code(client: AsyncClient, mock_google_oauth):
     import app.api.v1.auth as auth_module
-    state = "test_state_123"
-    auth_module.oauth_states[state] = datetime.now(timezone.utc)
+    state = auth_module.create_oauth_state("http://localhost:5173")
 
     mock_response = MagicMock()
     mock_response.status_code = 400
@@ -74,8 +73,7 @@ async def test_callback_invalid_code(client: AsyncClient, mock_google_oauth):
 @pytest.mark.asyncio
 async def test_callback_valid_code(client: AsyncClient, mock_google_oauth, db_session: AsyncSession):
     import app.api.v1.auth as auth_module
-    state = "test_state_valid"
-    auth_module.oauth_states[state] = datetime.now(timezone.utc)
+    state = auth_module.create_oauth_state("http://localhost:5173")
 
     response = await client.get(f"/auth/google/callback?code=valid_code&state={state}", follow_redirects=False)
     assert response.status_code == 307
@@ -142,8 +140,7 @@ async def test_guest_login(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_user_created_on_first_login(client: AsyncClient, mock_google_oauth, db_session: AsyncSession):
     import app.api.v1.auth as auth_module
-    state = "test_state_first"
-    auth_module.oauth_states[state] = datetime.now(timezone.utc)
+    state = auth_module.create_oauth_state("http://localhost:5173")
 
     result_before = await db_session.execute(select(User).where(User.google_id == "google_user_123"))
     assert result_before.scalar_one_or_none() is None
@@ -159,8 +156,7 @@ async def test_user_created_on_first_login(client: AsyncClient, mock_google_oaut
 @pytest.mark.asyncio
 async def test_user_updated_on_subsequent_login(client: AsyncClient, db_session: AsyncSession):
     import app.api.v1.auth as auth_module
-    state = "test_state_update"
-    auth_module.oauth_states[state] = datetime.now(timezone.utc)
+    state = auth_module.create_oauth_state("http://localhost:5173")
 
     mock_token_response = MagicMock()
     mock_token_response.status_code = 200

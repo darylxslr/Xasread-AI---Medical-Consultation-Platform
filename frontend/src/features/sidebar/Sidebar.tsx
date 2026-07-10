@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTheme } from '../../context/ThemeContext'
-import GuestExpiryBanner from './GuestExpiryBanner'
 import { Plus, Search, MessageSquare, Settings, Sun, Moon, Clock, Inbox, LogOut, Users, Trash2 } from 'lucide-react'
 import type { Conversation } from '../../types'
+import { formatTimestamp } from '../../lib/formatTimestamp'
 
 interface SidebarProps {
   conversations: Conversation[]
@@ -12,13 +12,11 @@ interface SidebarProps {
   onDeleteConv: (id: string) => void
   onSignOut: () => void
   onSwitchAccount?: () => void
-  disabled?: boolean
   userName?: string
   avatarUrl?: string
   isOpen?: boolean
   onToggle?: () => void
   onOpenSettings?: () => void
-  guestExpiresAt?: string | null
 }
 
 const s = {
@@ -252,19 +250,6 @@ const s = {
   } as const,
 }
 
-function formatTimestamp(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const todayPh = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Manila' })
-  const datePh = d.toLocaleDateString('en-US', { timeZone: 'Asia/Manila' })
-  if (datePh === todayPh) {
-    return d.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour12: true, hour: 'numeric', minute: '2-digit' })
-  }
-  const datePart = d.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-  const timePart = d.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour12: true, hour: 'numeric', minute: '2-digit' })
-  return `${datePart} at ${timePart}`
-}
-
 function getDateGroup(iso: string): string {
   if (!iso) return 'Earlier'
   const d = new Date(iso)
@@ -294,7 +279,7 @@ function groupConversations(convs: Conversation[]): GroupedConversations[] {
   return order.filter(g => groups[g]?.length).map(g => ({ label: g, convs: groups[g] }))
 }
 
-export default function Sidebar({ conversations, activeConv, onSelectConv, onNewConsultation, onDeleteConv, onSignOut, onSwitchAccount, disabled, userName, avatarUrl, isOpen, onToggle, onOpenSettings, guestExpiresAt }: SidebarProps) {
+export default function Sidebar({ conversations, activeConv, onSelectConv, onNewConsultation, onDeleteConv, onSignOut, onSwitchAccount, userName, avatarUrl, isOpen, onToggle, onOpenSettings }: SidebarProps) {
   const { theme, toggleTheme } = useTheme()
   const [search, setSearch] = useState('')
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
@@ -349,7 +334,7 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
         </div>
       </div>
 
-      <button className="sidebar-new-btn" style={{ ...s.newBtn, opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }} disabled={disabled} onClick={() => { onNewConsultation(); onToggle?.() }}>
+      <button className="sidebar-new-btn" style={s.newBtn} onClick={() => { onNewConsultation(); onToggle?.() }}>
         <Plus size={16} />
         New Consultation
       </button>
@@ -427,10 +412,6 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
         </div>
       )}
 
-            {guestExpiresAt && (
-        <GuestExpiryBanner expiresAt={guestExpiresAt} />
-      )}
-
       <div style={s.footer}>
         <div ref={accountMenuRef} style={{ position: 'relative', flex: 1 }}>
           <button className="sidebar-user-btn" style={s.userBtn} onClick={() => setAccountMenuOpen(o => !o)}>
@@ -443,7 +424,7 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
             </div>
             <div style={{ textAlign: 'left' }}>
               <div style={s.userName}>{userName || 'Guest User'}</div>
-              <div style={s.userRole}>{guestExpiresAt ? 'Guest' : 'User'}</div>
+              <div style={s.userRole}>User</div>
             </div>
           </button>
           {accountMenuOpen && (

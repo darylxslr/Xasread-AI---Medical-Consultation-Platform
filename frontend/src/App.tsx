@@ -13,7 +13,6 @@ import ConfirmModal from './layouts/ConfirmModal'
 import SettingsPanel from './features/settings/SettingsPanel'
 import LandingPage from './features/auth/LandingPage'
 import TypingIndicator from './features/chat/TypingIndicator'
-import GuestExpiryBanner from './features/sidebar/GuestExpiryBanner'
 import { getChatMode, applyFontSize } from './lib/storage'
 import type { Message } from './types'
 
@@ -250,7 +249,7 @@ interface ConversationListItem {
 }
 
 function AuthenticatedApp() {
-  const { user, token, isGuest, guestUsername, guestToken, signOut } = useAuth()
+  const { user, token, isGuest, guestUsername, guestToken, signOut, endGuestSession } = useAuth()
   const [conversations, setConversations] = useState<ConversationListItem[]>([])
   const [activeConv, setActiveConv] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -262,6 +261,7 @@ function AuthenticatedApp() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false)
   const [lastConvTitle, setLastConvTitle] = useState<string | null>(null)
   const randomSuffix = useMemo(() => String(Math.floor(Math.random() * 9000) + 1000), [])
   const sessionId = useMemo(() => `SID-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomSuffix}`, [randomSuffix])
@@ -607,7 +607,11 @@ function AuthenticatedApp() {
 
 
   const handleEndSession = () => {
-    signOut()
+    if (isGuest) {
+      setShowEndSessionConfirm(true)
+    } else {
+      signOut()
+    }
   }
 
   const handleSwitchAccount = useCallback(() => {
@@ -650,12 +654,6 @@ function AuthenticatedApp() {
         position: 'relative',
       }}>
         <TopHeader onEndSession={handleEndSession} onToggleSidebar={toggleSidebar} sessionId={sessionId} />
-
-        {guestExpiresAt && (
-          <div className="header-mobile-only" style={{ flexShrink: 0, width: '100%' }}>
-            <GuestExpiryBanner expiresAt={guestExpiresAt} />
-          </div>
-        )}
 
         {isLoadingMessages ? (
           <div style={{
@@ -701,6 +699,17 @@ function AuthenticatedApp() {
         )}
         {showSettings && (
           <SettingsPanel onClose={() => setShowSettings(false)} onSignOut={signOut} />
+        )}
+        {showEndSessionConfirm && (
+          <ConfirmModal
+            title="End Session"
+            message="Your consultations and guest account will be permanently deleted. This cannot be undone."
+            confirmLabel="End"
+            cancelLabel="Cancel"
+            danger
+            onConfirm={() => { endGuestSession(); setShowEndSessionConfirm(false) }}
+            onCancel={() => setShowEndSessionConfirm(false)}
+          />
         )}
       </div>
     </div>

@@ -177,7 +177,7 @@ export default function LandingPage({ onContinueAsGuest, onEnterApp }: LandingPa
   }
 
   return (
-    <div style={s.wrapper}>
+    <div style={{ ...s.wrapper, alignItems: isMobile ? 'flex-start' : 'center' }}>
       <style>{`
         .landing-google-btn:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; border-color: #d0d0d0 !important; }
         .landing-guest-btn:hover { border-color: var(--primary) !important; color: var(--primary) !important; background: var(--primary-light) !important; }

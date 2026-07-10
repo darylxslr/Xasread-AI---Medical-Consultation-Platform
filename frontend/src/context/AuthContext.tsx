@@ -14,6 +14,7 @@ export interface AuthContextType {
   signOut: () => void
   getStoredGuestName: () => string | null
   resumeGuestSession: () => void
+  endGuestSession: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -125,6 +126,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null)
   }, [])
 
+  const endGuestSession = useCallback(() => {
+    setUser(null)
+    setToken(null)
+    setIsGuest(false)
+    setGuestUsername(null)
+    setGuestToken(null)
+    sessionStorage.removeItem('xasread-auth-mode')
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('xasread-guest-data-'))
+      .forEach(k => localStorage.removeItem(k))
+    localStorage.removeItem('xasread-guest')
+    localStorage.removeItem('xasread-guest-user')
+    localStorage.removeItem('xasread-guest-token')
+    localStorage.removeItem('xasread-guest-created-at')
+    localStorage.removeItem('xasread-active-conv')
+    localStorage.removeItem('xasread-token')
+  }, [])
+
   const signOut = useCallback(() => {
     setUser(null)
     setToken(null)
@@ -160,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         getStoredGuestName,
         resumeGuestSession,
+        endGuestSession,
       }}
     >
       {children}

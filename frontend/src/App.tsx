@@ -213,7 +213,7 @@ function WelcomeScreen({ conversations, onNewConsultation, onSelectConv }: Welco
   )
 }
 
-function AuthCallbackHandler() {
+function AuthCallbackHandler({ onSignedIn }: { onSignedIn: () => void }) {
   const { signIn } = useAuth()
 
   useEffect(() => {
@@ -222,8 +222,9 @@ function AuthCallbackHandler() {
     if (token) {
       signIn(token)
       window.history.replaceState({}, '', '/')
+      onSignedIn()
     }
-  }, [signIn])
+  }, [signIn, onSignedIn])
 
   return (
     <div style={{
@@ -701,6 +702,7 @@ function AuthenticatedApp() {
 
 function AppContent() {
   const { isAuthenticated, isLoading, continueAsGuest } = useAuth()
+  const [showApp, setShowApp] = useState(() => window.location.pathname === '/auth/callback')
 
   if (isLoading) {
     return (
@@ -732,11 +734,11 @@ function AppContent() {
   }
 
   if (window.location.pathname === '/auth/callback') {
-    return <AuthCallbackHandler />
+    return <AuthCallbackHandler onSignedIn={() => setShowApp(true)} />
   }
 
-  if (!isAuthenticated) {
-    return <LandingPage onContinueAsGuest={continueAsGuest} />
+  if (!showApp) {
+    return <LandingPage onContinueAsGuest={continueAsGuest} isAuthenticated={isAuthenticated} onEnterApp={() => setShowApp(true)} />
   }
 
   return <AuthenticatedApp />

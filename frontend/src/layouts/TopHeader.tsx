@@ -23,6 +23,7 @@ const s = {
     top: 0,
     zIndex: 50,
     flexShrink: 0,
+    overflow: 'hidden',
   } as const,
   left: {
     display: 'flex',
@@ -149,7 +150,7 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar, ses
     return () => document.removeEventListener('mousedown', handler)
   }, [menuOpen])
 
-  const headerStyle = { ...s.header, padding: 'var(--header-padding)' }
+  const headerStyle = { ...s.header, padding: 'var(--header-padding)', paddingTop: 'calc(0px + var(--safe-top, 0px))', height: 'calc(var(--header-height) + var(--safe-top, 0px))' }
 
   return (
     <header style={headerStyle}>
@@ -163,7 +164,7 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar, ses
         </button>
         <span className="header-mobile-hide" style={s.sessionLabel}>Session</span>
         <span className="header-mobile-hide" style={s.sessionId}>{sessionId}</span>
-        <div style={s.statusBadge}>
+        <div className="header-mobile-hide" style={s.statusBadge}>
           <PulseDot />
           Model Active
         </div>

@@ -317,7 +317,7 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
   const sidebarContent = (
     <aside
       className={`sidebar-root${isOpen ? ' open' : ''}`}
-      style={{ ...s.sidebar, zIndex: isOpen ? 101 : 100 }}
+      style={{ ...s.sidebar, zIndex: isOpen ? 101 : 100, paddingTop: 'var(--safe-top, 0px)', paddingBottom: 'var(--safe-bottom, 0px)', paddingLeft: 'var(--safe-left, 0px)' }}
       onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
       onTouchEnd={e => {
         const dx = touchStartX.current - e.changedTouches[0].clientX

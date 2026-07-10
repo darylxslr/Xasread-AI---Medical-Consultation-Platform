@@ -1,9 +1,11 @@
-import { Shield, ArrowLeft } from 'lucide-react'
+import { Shield, ArrowLeft, ArrowRight } from 'lucide-react'
 import { useState } from 'react'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 
 interface LandingPageProps {
   onContinueAsGuest: (name: string) => void
+  isAuthenticated?: boolean
+  onEnterApp?: () => void
 }
 
 const s = {
@@ -130,7 +132,7 @@ function GoogleIcon() {
   )
 }
 
-export default function LandingPage({ onContinueAsGuest }: LandingPageProps) {
+export default function LandingPage({ onContinueAsGuest, isAuthenticated, onEnterApp }: LandingPageProps) {
   const isMobile = useMediaQuery('(max-width: 639px)')
   const [showNameInput, setShowNameInput] = useState(false)
   const [guestName, setGuestName] = useState('')
@@ -142,7 +144,10 @@ export default function LandingPage({ onContinueAsGuest }: LandingPageProps) {
 
   const handleStartGuest = () => {
     const name = guestName.trim()
-    if (name) onContinueAsGuest(name)
+    if (name) {
+      onContinueAsGuest(name)
+      onEnterApp?.()
+    }
   }
 
   return (
@@ -157,6 +162,32 @@ export default function LandingPage({ onContinueAsGuest }: LandingPageProps) {
         <img src="/logo.svg" alt="Xasread" style={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56, borderRadius: 'var(--radius-md)' }} />
         <h1 style={isMobile ? s.titleMobile : s.title}>Xasread</h1>
         <p style={isMobile ? s.subtitleMobile : s.subtitle}>AI Medical Consultation</p>
+
+        {isAuthenticated && !showNameInput && (
+          <button
+            onClick={onEnterApp}
+            style={{
+              width: '100%',
+              padding: '14px 20px',
+              borderRadius: 'var(--radius-pill)',
+              border: 'none',
+              background: 'linear-gradient(135deg, #D4782F 0%, #E8954F 100%)',
+              color: '#fff',
+              fontSize: 15,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              marginBottom: 20,
+              boxShadow: '0 4px 16px rgba(212, 120, 47, 0.25)',
+            }}
+          >
+            Continue to Dashboard
+            <ArrowRight size={18} />
+          </button>
+        )}
 
         {showNameInput ? (
           <>

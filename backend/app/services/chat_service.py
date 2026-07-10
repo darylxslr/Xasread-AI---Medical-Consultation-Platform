@@ -1,6 +1,6 @@
 import json
 import re
-import httpx
+from .client import get_http_client
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from sqlalchemy import select
@@ -129,23 +129,23 @@ async def try_groq_model(model: str, messages: list[dict], temperature: float = 
         return None
     try:
         payload_messages = build_vision_messages(messages, file) if file else messages
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                f"{GROQ_BASE_URL}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.groq_api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "messages": payload_messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                },
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                return data["choices"][0]["message"]["content"]
+        client = get_http_client(timeout=15.0)
+        resp = await client.post(
+            f"{GROQ_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {settings.groq_api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": payload_messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            },
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return data["choices"][0]["message"]["content"]
     except Exception:
         return None
     return None
@@ -214,3 +214,5 @@ async def save_message(db: AsyncSession, conversation_id: str, role: str, conten
     if conv:
         conv.updated_at = datetime.now(timezone.utc)
     return msg
+
+

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { Copy, Check, Loader } from 'lucide-react'
-import DOMPurify from 'isomorphic-dompurify'
+import DOMPurify from 'dompurify'
 import MedicalImageViewer from '../consultation/MedicalImageViewer'
 import AnalysisPanel from '../consultation/AnalysisPanel'
 import type { Message } from '../../types'
@@ -96,7 +96,7 @@ function removeAnimatedId(id: string) {
   } catch { /* ignore */ }
 }
 
-export default function AIResponse({ message, onRephrase }: AIResponseProps) {
+function AIResponse({ message, onRephrase }: AIResponseProps) {
   const [chatMode, setChatMode] = useState(() => {
     try {
       const s = localStorage.getItem('xasread-settings')
@@ -204,7 +204,7 @@ export default function AIResponse({ message, onRephrase }: AIResponseProps) {
   }, [message.id, onRephrase])
 
   return (
-    <div style={s.wrapper}>
+    <div className="msg-enter" style={s.wrapper}>
       <div style={s.avatar}>
         <img src="/logo.svg" alt="Xasread AI" style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)' }} />
       </div>
@@ -292,3 +292,8 @@ export default function AIResponse({ message, onRephrase }: AIResponseProps) {
     </div>
   )
 }
+
+export default memo(AIResponse)
+
+
+

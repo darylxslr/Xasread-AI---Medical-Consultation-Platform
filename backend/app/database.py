@@ -3,7 +3,7 @@ from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.pool import NullPool
+
 from sqlalchemy.engine import make_url
 
 from config import settings
@@ -35,7 +35,6 @@ def get_engine() -> AsyncEngine:
             normalize_database_url(settings.database_url),
             echo=False,
             future=True,
-            poolclass=NullPool,
             connect_args=connect_args,
         )
     return _engine
@@ -98,3 +97,7 @@ def get_db_status() -> dict[str, str]:
             "error": type(_db_init_error).__name__,
         }
     return {"database": "not_initialized"}
+
+
+
+

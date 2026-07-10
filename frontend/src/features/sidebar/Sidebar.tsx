@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTheme } from '../../context/ThemeContext'
 import GuestExpiryBanner from './GuestExpiryBanner'
 import { Plus, Search, MessageSquare, Settings, Sun, Moon, Clock, Inbox, LogOut, Users, Trash2 } from 'lucide-react'
@@ -11,6 +11,7 @@ interface SidebarProps {
   onNewConsultation: () => void
   onDeleteConv: (id: string) => void
   onSignOut: () => void
+  onSwitchAccount?: () => void
   disabled?: boolean
   userName?: string
   avatarUrl?: string
@@ -259,18 +260,48 @@ function formatTimestamp(iso?: string): string {
   return `${datePart} at ${timePart}`
 }
 
-export default function Sidebar({ conversations, activeConv, onSelectConv, onNewConsultation, onDeleteConv, onSignOut, disabled, userName, avatarUrl, isOpen, onToggle, onOpenSettings, guestExpiresAt }: SidebarProps) {
+function getDateGroup(iso: string): string {
+  if (!iso) return 'Earlier'
+  const d = new Date(iso)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const convDate = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const diffDays = Math.floor((today.getTime() - convDate.getTime()) / 86400000)
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return 'This Week'
+  return 'Earlier'
+}
+
+interface GroupedConversations {
+  label: string
+  convs: Conversation[]
+}
+
+function groupConversations(convs: Conversation[]): GroupedConversations[] {
+  const order = ['Today', 'Yesterday', 'This Week', 'Earlier']
+  const groups: Record<string, Conversation[]> = {}
+  for (const c of convs) {
+    const g = getDateGroup(c.timestamp)
+    if (!groups[g]) groups[g] = []
+    groups[g].push(c)
+  }
+  return order.filter(g => groups[g]?.length).map(g => ({ label: g, convs: groups[g] }))
+}
+
+export default function Sidebar({ conversations, activeConv, onSelectConv, onNewConsultation, onDeleteConv, onSignOut, onSwitchAccount, disabled, userName, avatarUrl, isOpen, onToggle, onOpenSettings, guestExpiresAt }: SidebarProps) {
   const { theme, toggleTheme } = useTheme()
   const [search, setSearch] = useState('')
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const accountMenuRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef(0)
 
-  const filtered = conversations
-    .filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
+  const filtered = useMemo(() => conversations
+    .filter(c => c.title.toLowerCase().includes(search.toLowerCase())), [conversations, search])
 
   const isEmpty = conversations.length === 0
   const noResults = !isEmpty && filtered.length === 0
+  const grouped = useMemo(() => groupConversations(filtered), [filtered])
 
   useEffect(() => {
     if (!accountMenuOpen) return
@@ -345,42 +376,47 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
         </div>
       ) : (
         <div style={s.history}>
-          {filtered.map(conv => (
-            <div
-              key={conv.id}
-              className="sidebar-history-item"
-              style={{
-                ...s.historyItem,
-                background: activeConv === conv.id ? 'var(--primary-light)' : 'transparent',
-                borderLeft: activeConv === conv.id ? '3px solid var(--primary)' : '3px solid transparent',
-                position: 'relative',
-                paddingRight: 40,
-              }}
-              onClick={() => onSelectConv(conv.id)}
-            >
-              <div style={s.historyTitle}>
-                <MessageSquare size={12} style={{ marginRight: 6, color: 'var(--text-muted)', verticalAlign: -1 }} />
-                {conv.title}
-              </div>
-                <div style={s.historyTime}>
-                <Clock size={10} />
-                {formatTimestamp(conv.timestamp)}
-              </div>
-              <button
-                className="sidebar-del-btn"
-                style={{
-                  position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-                  width: 24, height: 24, borderRadius: 'var(--radius-sm)',
-                  border: 'none', background: 'transparent', color: 'var(--text-muted)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', opacity: 0, transition: 'all 0.15s',
-                  padding: 0,
-                }}
-                onClick={e => { e.stopPropagation(); onDeleteConv(conv.id) }}
-                title="Delete consultation"
-              >
-                <Trash2 size={13} />
-              </button>
+          {grouped.map(group => (
+            <div key={group.label}>
+              <div className="date-group-header">{group.label}</div>
+              {group.convs.map(conv => (
+                <div
+                  key={conv.id}
+                  className="sidebar-history-item"
+                  style={{
+                    ...s.historyItem,
+                    background: activeConv === conv.id ? 'var(--primary-light)' : 'transparent',
+                    borderLeft: activeConv === conv.id ? '3px solid var(--primary)' : '3px solid transparent',
+                    position: 'relative',
+                    paddingRight: 40,
+                  }}
+                  onClick={() => onSelectConv(conv.id)}
+                >
+                  <div style={s.historyTitle}>
+                    <MessageSquare size={12} style={{ marginRight: 6, color: 'var(--text-muted)', verticalAlign: -1 }} />
+                    {conv.title}
+                  </div>
+                    <div style={s.historyTime}>
+                    <Clock size={10} />
+                    {formatTimestamp(conv.timestamp)}
+                  </div>
+                  <button
+                    className="sidebar-del-btn"
+                    style={{
+                      position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                      width: 24, height: 24, borderRadius: 'var(--radius-sm)',
+                      border: 'none', background: 'transparent', color: 'var(--text-muted)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', opacity: 0, transition: 'all 0.15s',
+                      padding: 0,
+                    }}
+                    onClick={e => { e.stopPropagation(); onDeleteConv(conv.id) }}
+                    title="Delete consultation"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
             </div>
           ))}
         </div>
@@ -407,7 +443,7 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
           </button>
           {accountMenuOpen && (
             <div style={s.accountDropdown}>
-              <button className="sidebar-account-item" style={s.accountDropdownItem} onClick={() => { setAccountMenuOpen(false); onSignOut(); }}>
+              <button className="sidebar-account-item" style={s.accountDropdownItem} onClick={() => { setAccountMenuOpen(false); onSwitchAccount?.(); }}>
                 <Users size={14} />
                 Switch Account
               </button>

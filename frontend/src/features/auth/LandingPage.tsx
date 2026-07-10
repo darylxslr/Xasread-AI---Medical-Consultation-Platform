@@ -207,12 +207,13 @@ export default function LandingPage({ onContinueAsGuest }: LandingPageProps) {
         ) : (
           <>
             <p style={s.desc}>
-              Xasread is an AI-powered medical assistant that helps you understand symptoms, 
-              review medical images and lab results, and get clear, actionable health insights.
-            </p>
-            <p style={{ ...s.desc, marginBottom: 0 }}>
-              Built for patients, caregivers, and healthcare professionals who want fast, 
-              reliable AI-assisted analysis — always private and HIPAA-compliant.
+              <strong>Xasread</strong> is a secure, privacy-first medical AI assistant designed
+              to bridge the gap between initial health concerns and professional clinical visits.
+              It provides immediate, educational triage for users by analyzing symptoms and
+              medical imaging (such as X-rays) to offer clear, actionable insights in plain language.
+              With a zero-login when using as a guest, no-retention architecture, Xasread ensures user anonymity while
+              helping patients enter their doctor's office informed, prepared, and ready with
+              the right questions.
             </p>
 
             <div style={s.divider} />

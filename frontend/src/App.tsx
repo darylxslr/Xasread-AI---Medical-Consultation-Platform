@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ToastProvider } from './context/ToastContext'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import Sidebar from './features/sidebar/Sidebar'
 import TopHeader from './layouts/TopHeader'
@@ -66,6 +67,13 @@ function ChatArea({ messages, onRephrase, isTyping }: { messages: Message[]; onR
     </div>
   )
 }
+
+
+const FEATURE_CARDS = [
+  { title: 'Symptom Checker', desc: 'Describe your symptoms and get a clear, structured analysis of possible causes and recommendations.' },
+  { title: 'Image Analysis', desc: 'Upload X-rays, CT scans, or lab results for instant AI-powered visual interpretation.' },
+  { title: 'Health Records', desc: 'Review and understand medical documents, reports, and clinical data in plain language.' },
+]
 
 interface WelcomeScreenProps {
   conversations: { id: string; title: string }[]
@@ -188,11 +196,7 @@ function WelcomeScreen({ conversations, onNewConsultation, onSelectConv }: Welco
           gap: 12,
           textAlign: 'left',
         }}>
-          {[
-            { title: 'Symptom Checker', desc: 'Describe your symptoms and get a clear, structured analysis of possible causes and recommendations.' },
-            { title: 'Image Analysis', desc: 'Upload X-rays, CT scans, or lab results for instant AI-powered visual interpretation.' },
-            { title: 'Health Records', desc: 'Review and understand medical documents, reports, and clinical data in plain language.' },
-          ].map(f => (
+          {FEATURE_CARDS.map(f => (
             <div key={f.title} style={{
               padding: '20px',
               borderRadius: 'var(--radius-sm)',
@@ -361,7 +365,7 @@ function AuthenticatedApp() {
       .finally(() => setIsLoadingMessages(false))
   }, [activeConv, token, authHeaders, isGuest, guestMessages])
 
-  const handleNewConsultation = async () => {
+  const handleNewConsultation = useCallback(async () => {
     const prevTitle = conversations.length > 0 ? conversations[0].title : null
     setLastConvTitle(prevTitle)
     setIsFreshConsult(true)
@@ -388,7 +392,8 @@ function AuthenticatedApp() {
     } catch (err) {
       console.error('Failed to create conversation:', err)
     }
-  }
+  }, [isGuest, token, authHeaders, persistActiveConv])
+
 
   const handleDeleteConv = (id: string) => {
     setDeleteTarget(id)
@@ -428,7 +433,7 @@ function AuthenticatedApp() {
     }
   }
 
-  const handleSend = async (text: string, _fileName?: string) => {
+  const handleSend = useCallback(async (text: string, _fileName?: string) => {
     let targetConv = activeConv
     const title = text.length > 50 ? text.slice(0, 50) + '...' : text
     const now = new Date().toISOString()
@@ -540,7 +545,8 @@ function AuthenticatedApp() {
     } finally {
       setIsTyping(false)
     }
-  }
+  }, [activeConv, isGuest, token, authHeaders, conversations, pendingFile, persistActiveConv])
+
 
   const handleFilePick = () => {
     fileInputRef.current?.click()
@@ -561,7 +567,7 @@ function AuthenticatedApp() {
     e.target.value = ''
   }
 
-  const handleRephrase = async (msgId: string, level: string) => {
+  const handleRephrase = useCallback(async (msgId: string, level: string) => {
     if (!activeConv) return
     if (isGuest) {
       try {
@@ -595,11 +601,19 @@ function AuthenticatedApp() {
         setMessages(prev => prev.map(m => m.id === msgId ? updated : m))
       }
     } catch { /* ignore */ }
-  }
+  }, [activeConv, isGuest, token, authHeaders, messages, guestMessages])
+
 
   const handleEndSession = () => {
     signOut()
   }
+
+  const handleSwitchAccount = useCallback(() => {
+    signOut()
+    if (!isGuest) {
+      window.location.href = '/auth/google'
+    }
+  }, [signOut, isGuest])
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -615,6 +629,7 @@ function AuthenticatedApp() {
           onNewConsultation={handleNewConsultation}
           onDeleteConv={handleDeleteConv}
           onSignOut={signOut}
+          onSwitchAccount={handleSwitchAccount}
           userName={user?.name || guestUsername || undefined}
           avatarUrl={user?.avatar_url}
           isOpen={sidebarOpen}
@@ -656,7 +671,7 @@ function AuthenticatedApp() {
           <WelcomeScreen conversations={conversations} onNewConsultation={handleNewConsultation} onSelectConv={persistActiveConv} />
         )}
 
-        {(activeConv || isFreshConsult) && <InputArea onSend={handleSend} onFilePick={handleFilePick} pendingFile={pendingFile?.name ?? null} sessionId={shortId} />}
+        {(activeConv || isFreshConsult) && <InputArea onSend={handleSend} onFilePick={handleFilePick} pendingFile={pendingFile} sessionId={shortId} />}
         <input
           ref={fileInputRef}
           type="file"
@@ -692,13 +707,26 @@ function AppContent() {
       <div style={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 20,
         background: 'var(--bg-main)',
-        fontSize: 14,
-        color: 'var(--text-muted)',
       }}>
-        Loading...
+        <img
+          src="/logo.svg"
+          alt="Xasread"
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 'var(--radius-md)',
+            boxShadow: '0 8px 32px rgba(212, 120, 47, 0.2)',
+            animation: 'pulse-ring 2s ease-out infinite',
+          }}
+        />
+        <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>
+          Loading Xasread...
+        </span>
       </div>
     )
   }
@@ -722,7 +750,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
   )

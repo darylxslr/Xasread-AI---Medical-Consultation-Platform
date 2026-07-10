@@ -16,31 +16,33 @@ router = APIRouter(prefix="/conversations", tags=["conversations"])
 async def list_conversations(
     user: User | None = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    limit: int = 50,
+    offset: int = 0,
 ):
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
 
     result = await db.execute(
-        select(Conversation)
-        .where(Conversation.user_id == user.id)
-        .order_by(Conversation.updated_at.desc(), Conversation.created_at.desc())
-    )
-    conversations = result.scalars().all()
-
-    out = []
-    for conv in conversations:
-        msg_count_result = await db.execute(
-            select(func.count(Message.id)).where(Message.conversation_id == conv.id)
+        select(
+            Conversation,
+            func.count(Message.id).label("message_count"),
         )
-        msg_count = msg_count_result.scalar() or 0
-        out.append(ConversationOut(
+        .outerjoin(Message, Message.conversation_id == Conversation.id)
+        .where(Conversation.user_id == user.id)
+        .group_by(Conversation.id)
+        .order_by(Conversation.updated_at.desc(), Conversation.created_at.desc()).offset(offset)
+        .limit(limit)
+    )
+    rows = result.all()
+
+    return [
+        ConversationOut(
             id=conv.id,
             title=conv.title,
             created_at=conv.created_at,
             updated_at=conv.updated_at,
-            message_count=msg_count,
-        ))
-    return out
+            message_count=count or 0,
+        )
+        for conv, count in rows
+    ]
 
 
 @router.post("", response_model=ConversationDetail, status_code=201)
@@ -147,3 +149,5 @@ async def update_conversation(
         updated_at=conv.updated_at,
         message_count=msg_count,
     )
+
+

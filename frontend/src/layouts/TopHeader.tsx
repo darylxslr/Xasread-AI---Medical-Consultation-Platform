@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Shield, MoreVertical, LogOut, Info, AlertCircle, Download, Menu } from 'lucide-react'
+import { useToast } from '../context/ToastContext'
+import AboutModal from './AboutModal'
 
 interface TopHeaderProps {
   onEndSession: () => void
@@ -131,8 +133,9 @@ function PulseDot() {
 }
 
 export default function TopHeader({ onEndSession, onExport, onToggleSidebar, sessionId }: TopHeaderProps) {
+  const { toast } = useToast()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [alertMsg, setAlertMsg] = useState<string | null>(null)
+  const [showAbout, setShowAbout] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -146,13 +149,6 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar, ses
     return () => document.removeEventListener('mousedown', handler)
   }, [menuOpen])
 
-  useEffect(() => {
-    if (alertMsg) {
-      const t = setTimeout(() => setAlertMsg(null), 2500)
-      return () => clearTimeout(t)
-    }
-  }, [alertMsg])
-
   const headerStyle = { ...s.header, padding: 'var(--header-padding)' }
 
   return (
@@ -162,7 +158,7 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar, ses
         .header-dropdown-item:hover { background: var(--bg-hover) !important; }
       `}</style>
       <div style={{ ...s.left, gap: 'var(--header-gap)' }}>
-        <button className="header-icon-btn hamburger-btn" style={s.iconBtn} onClick={onToggleSidebar}>
+        <button className="header-icon-btn hamburger-btn" style={s.iconBtn} onClick={onToggleSidebar} aria-label="Toggle sidebar">
           <Menu size={18} />
         </button>
         <span className="header-mobile-hide" style={s.sessionLabel}>Session</span>
@@ -194,11 +190,11 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar, ses
                   Export Conversation
                 </button>
               )}
-              <button className="header-dropdown-item" style={s.dropdownItem} onClick={() => { setMenuOpen(false); setAlertMsg('Xasread AI v3.0 — HIPAA-compliant medical consultation assistant.'); }}>
+              <button className="header-dropdown-item" style={s.dropdownItem} onClick={() => { setMenuOpen(false); setShowAbout(true); }}>
                 <Info size={14} />
                 About Xasread
               </button>
-              <button className="header-dropdown-item" style={s.dropdownItem} onClick={() => { setMenuOpen(false); setAlertMsg('Report submitted. Thank you.'); }}>
+              <button className="header-dropdown-item" style={s.dropdownItem} onClick={() => { setMenuOpen(false); toast('Report submitted. Thank you.', 'success'); }}>
                 <AlertCircle size={14} />
                 Report Issue
               </button>
@@ -206,28 +202,7 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar, ses
           )}
         </div>
       </div>
-      {alertMsg && (
-        <div style={{
-          position: 'fixed',
-          top: 80,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--text-primary)',
-          color: 'var(--bg-card)',
-          padding: '10px 20px',
-          borderRadius: 'var(--radius-pill)',
-          fontSize: 13,
-          fontWeight: 500,
-          boxShadow: 'var(--shadow-lg)',
-          zIndex: 9999,
-          animation: 'toast-in 0.3s ease',
-          maxWidth: '90vw',
-          whiteSpace: 'nowrap',
-        }}>
-          {alertMsg}
-        </div>
-      )}
-      <style>{`@keyframes toast-in { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }`}</style>
+      <AboutModal open={showAbout} onClose={() => setShowAbout(false)} />
     </header>
   )
 }

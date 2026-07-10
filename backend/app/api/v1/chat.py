@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import load_only
 from sqlalchemy import select
 from pydantic import BaseModel
 
@@ -62,6 +63,7 @@ async def chat_message(
         select(Message)
         .where(Message.conversation_id == conv_id)
         .order_by(Message.created_at)
+        .options(load_only(Message.role, Message.content))
     )
     history = history_result.scalars().all()
 
@@ -152,3 +154,5 @@ async def rephrase_message(
     await db.commit()
     await db.refresh(msg)
     return MessageOut.model_validate(msg)
+
+

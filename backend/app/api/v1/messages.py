@@ -16,6 +16,8 @@ async def list_messages(
     conv_id: str,
     user: User | None = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    limit: int = 100,
+    offset: int = 0,
 ):
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -30,7 +32,7 @@ async def list_messages(
     msgs_result = await db.execute(
         select(Message)
         .where(Message.conversation_id == conv_id)
-        .order_by(Message.created_at)
+        .order_by(Message.created_at).offset(offset).limit(limit)
     )
     msgs = [MessageOut.model_validate(m) for m in msgs_result.scalars().all()]
     return msgs
@@ -60,3 +62,5 @@ async def create_message(
     await db.commit()
     await db.refresh(msg)
     return MessageOut.model_validate(msg)
+
+

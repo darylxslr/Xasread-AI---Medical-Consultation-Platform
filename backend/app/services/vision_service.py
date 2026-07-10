@@ -1,6 +1,6 @@
 import json
 import re
-import httpx
+from .client import get_http_client
 
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1/models"
 
@@ -37,18 +37,18 @@ async def gemini_analyze_image(
     }
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(url, json=payload)
-            if resp.status_code != 200:
-                return None, []
-            data = resp.json()
-            candidates = data.get("candidates", [])
-            if not candidates:
-                return None, []
-            parts = candidates[0].get("content", {}).get("parts", [])
-            if not parts:
-                return None, []
-            text = parts[0].get("text", "")
+        client = get_http_client(timeout=15.0)
+        resp = await client.post(url, json=payload)
+        if resp.status_code != 200:
+            return None, []
+        data = resp.json()
+        candidates = data.get("candidates", [])
+        if not candidates:
+            return None, []
+        parts = candidates[0].get("content", {}).get("parts", [])
+        if not parts:
+            return None, []
+        text = parts[0].get("text", "")
     except Exception:
         return None, []
 
@@ -65,3 +65,5 @@ async def gemini_analyze_image(
 
     clean = re.sub(r"\s*<findings>.*?</findings>\s*", "", text, flags=re.DOTALL).strip()
     return clean, findings_data
+
+

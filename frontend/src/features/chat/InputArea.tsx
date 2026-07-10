@@ -4,7 +4,7 @@ import { Paperclip, Mic, SendHorizonal, Shield } from 'lucide-react'
 interface InputAreaProps {
   onSend: (text: string, fileName?: string) => void
   onFilePick: () => void
-  pendingFile: string | null
+  pendingFile: { name: string; data: string } | null
   sessionId?: string
 }
 
@@ -284,17 +284,27 @@ export default function InputArea({ onSend, onFilePick, pendingFile, sessionId }
             <Paperclip size={18} />
           </button>
           {pendingFile && (
-            <span style={{
-              fontSize: 11,
-              color: 'var(--primary)',
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: 120,
-            }} title={pendingFile}>
-              {pendingFile}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 150 }}>
+              {pendingFile.data.startsWith('data:image/') ? (
+                <img
+                  src={pendingFile.data}
+                  alt={pendingFile.name}
+                  style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)', objectFit: 'cover', flexShrink: 0 }}
+                />
+              ) : (
+                <Paperclip size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+              )}
+              <span style={{
+                fontSize: 11,
+                color: 'var(--primary)',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }} title={pendingFile.name}>
+                {pendingFile.name}
+              </span>
+            </div>
           )}
           <div style={s.divider} />
           <textarea

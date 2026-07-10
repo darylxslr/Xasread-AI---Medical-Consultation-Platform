@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, memo } from 'react'
 import { Paperclip, MoreVertical, Edit3, Trash2, Check, X } from 'lucide-react'
 import type { Message } from '../../types'
 
@@ -134,7 +134,7 @@ const s = {
   } as const,
 }
 
-export default function UserMessage({ message, onEdit, onDelete }: UserMessageProps) {
+function UserMessage({ message, onEdit, onDelete }: UserMessageProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(message.content)
@@ -179,7 +179,7 @@ export default function UserMessage({ message, onEdit, onDelete }: UserMessagePr
 
   return (
     <div
-      className="user-msg-wrapper"
+      className="user-msg-wrapper msg-enter"
       style={{ ...s.wrapper, position: 'relative' }}
       onMouseEnter={e => {
         const btn = (e.currentTarget as HTMLElement).querySelector('.user-msg-menu-btn') as HTMLElement
@@ -235,7 +235,16 @@ export default function UserMessage({ message, onEdit, onDelete }: UserMessagePr
       </div>
 
       {!editing && (
-        <div ref={menuRef} style={{ position: 'absolute', right: -32, top: 0 }}>
+        <div ref={menuRef} className="user-msg-menu-wrap" style={{ position: 'absolute', right: -32, top: 0 }}>
+          <style>{`
+            .user-msg-menu-wrap { right: -32px; }
+            .user-msg-menu-btn { opacity: 0; }
+            .user-msg-menu-btn:hover { opacity: 1; }
+            @media (hover: none) and (pointer: coarse) {
+              .user-msg-menu-wrap { right: 0; }
+              .user-msg-menu-btn { opacity: 1 !important; }
+            }
+          `}</style>
           <button
             className="user-msg-menu-btn"
             style={s.menuBtn}
@@ -260,3 +269,6 @@ export default function UserMessage({ message, onEdit, onDelete }: UserMessagePr
     </div>
   )
 }
+
+export default memo(UserMessage)
+

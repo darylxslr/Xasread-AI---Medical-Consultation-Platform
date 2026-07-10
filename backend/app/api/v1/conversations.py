@@ -19,6 +19,8 @@ async def list_conversations(
     limit: int = 50,
     offset: int = 0,
 ):
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
     result = await db.execute(
         select(

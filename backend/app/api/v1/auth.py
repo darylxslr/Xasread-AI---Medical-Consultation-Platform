@@ -6,7 +6,7 @@ import secrets
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlencode
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -22,33 +22,35 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 oauth_states: dict[str, datetime] = {}
 
 
-def create_oauth_state() -> str:
+def create_oauth_state(origin: str) -> str:
     issued_at = int(datetime.now(timezone.utc).timestamp())
     nonce = secrets.token_urlsafe(24)
-    payload = {"iat": issued_at, "nonce": nonce}
+    payload = {"iat": issued_at, "nonce": nonce, "origin": origin}
     payload_bytes = json.dumps(payload, separators=(",", ":")).encode()
     payload_b64 = base64.urlsafe_b64encode(payload_bytes).rstrip(b"=").decode()
     signature = hmac.new(settings.jwt_secret.encode(), payload_b64.encode(), hashlib.sha256).digest()
     signature_b64 = base64.urlsafe_b64encode(signature).rstrip(b"=").decode()
     return f"{payload_b64}.{signature_b64}"
 
-def verify_oauth_state(state: str | None) -> bool:
+def verify_oauth_state(state: str | None) -> dict | None:
     if not state:
-        return False
+        return None
     legacy_state_time = oauth_states.pop(state, None)
     if legacy_state_time:
-        return datetime.now(timezone.utc) - legacy_state_time <= timedelta(minutes=10)
+        return {"origin": settings.frontend_url}
     if "." not in state:
-        return False
+        return None
     payload_b64, signature_b64 = state.rsplit(".", 1)
     expected = hmac.new(settings.jwt_secret.encode(), payload_b64.encode(), hashlib.sha256).digest()
     actual = base64.urlsafe_b64decode(signature_b64 + "=" * (-len(signature_b64) % 4))
     if not hmac.compare_digest(expected, actual):
-        return False
+        return None
     payload_bytes = base64.urlsafe_b64decode(payload_b64 + "=" * (-len(payload_b64) % 4))
     payload = json.loads(payload_bytes)
     issued_at = datetime.fromtimestamp(payload["iat"], tz=timezone.utc)
-    return datetime.now(timezone.utc) - issued_at <= timedelta(minutes=10)
+    if datetime.now(timezone.utc) - issued_at > timedelta(minutes=10):
+        return None
+    return payload
 
 
 def trim_error_body(text: str, limit: int = 500) -> str:
@@ -57,14 +59,16 @@ def trim_error_body(text: str, limit: int = 500) -> str:
 
 
 @router.get("/google")
-async def google_login():
+async def google_login(request: Request):
     if not settings.google_client_id or not settings.google_client_secret:
         raise HTTPException(
             status_code=500,
             detail="Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env",
         )
 
-    state = create_oauth_state()
+    referer = request.headers.get("Referer", "").rstrip("/")
+    origin = referer if referer and referer.startswith(("http://", "https://")) else settings.frontend_url
+    state = create_oauth_state(origin)
 
     params = {
         "client_id": settings.google_client_id,
@@ -89,10 +93,10 @@ async def google_callback(
         raise HTTPException(status_code=400, detail="Missing authorization code")
 
     try:
-        state_is_valid = verify_oauth_state(state)
+        state_payload = verify_oauth_state(state)
     except Exception:
-        state_is_valid = False
-    if not state_is_valid:
+        state_payload = None
+    if not state_payload:
         raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
 
     if not settings.google_client_id or not settings.google_client_secret:
@@ -167,7 +171,8 @@ async def google_callback(
     await db.refresh(user)
 
     jwt_token = create_jwt_token(user.id)
-    redirect_url = f"{settings.frontend_url}/auth/callback?token={jwt_token}"
+    origin = state_payload.get("origin", settings.frontend_url)
+    redirect_url = f"{origin}/auth/callback?token={jwt_token}"
     return RedirectResponse(url=redirect_url, status_code=307)
 
 

@@ -13,6 +13,7 @@ import ConfirmModal from './layouts/ConfirmModal'
 import SettingsPanel from './features/settings/SettingsPanel'
 import LandingPage from './features/auth/LandingPage'
 import TypingIndicator from './features/chat/TypingIndicator'
+import GuestExpiryBanner from './features/sidebar/GuestExpiryBanner'
 import { getChatMode, applyFontSize } from './lib/storage'
 import type { Message } from './types'
 
@@ -650,6 +651,12 @@ function AuthenticatedApp() {
       }}>
         <TopHeader onEndSession={handleEndSession} onToggleSidebar={toggleSidebar} sessionId={sessionId} />
 
+        {guestExpiresAt && (
+          <div className="header-mobile-only" style={{ flexShrink: 0, width: '100%' }}>
+            <GuestExpiryBanner expiresAt={guestExpiresAt} />
+          </div>
+        )}
+
         {isLoadingMessages ? (
           <div style={{
             flex: 1,
@@ -737,7 +744,7 @@ function AppContent() {
     return <AuthCallbackHandler onSignedIn={() => setShowApp(true)} />
   }
 
-  if (!showApp) {
+  if (!showApp || !isAuthenticated) {
     return <LandingPage onContinueAsGuest={continueAsGuest} isAuthenticated={isAuthenticated} onEnterApp={() => setShowApp(true)} />
   }
 

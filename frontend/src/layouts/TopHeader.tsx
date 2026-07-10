@@ -41,6 +41,10 @@ const s = {
     background: 'var(--bg-main)',
     padding: '4px 8px',
     borderRadius: 'var(--radius-sm)',
+    maxWidth: 180,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   } as const,
   statusBadge: {
     display: 'flex',

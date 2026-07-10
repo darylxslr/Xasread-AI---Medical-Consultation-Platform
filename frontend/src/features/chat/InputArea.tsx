@@ -15,6 +15,7 @@ const s = {
     padding: '12px 24px 20px',
     background: 'linear-gradient(transparent, var(--bg-main) 20%)',
     flexShrink: 0,
+    overflow: 'hidden',
   } as const,
   container: {
     maxWidth: 800,
@@ -270,6 +271,10 @@ export default function InputArea({ onSend, onFilePick, pendingFile, sessionId }
             fontFamily: 'var(--font-mono)',
             color: 'var(--text-muted)',
             fontWeight: 600,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: 120,
           }}>
             {sessionId}
           </div>

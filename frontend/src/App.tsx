@@ -709,7 +709,12 @@ function AuthenticatedApp() {
 
 function AppContent() {
   const { isAuthenticated, isLoading, continueAsGuest } = useAuth()
-  const [showApp, setShowApp] = useState(() => window.location.pathname === '/auth/callback')
+  const [showApp, setShowApp] = useState(() => {
+    if (window.location.pathname === '/auth/callback') return true
+    const mode = sessionStorage.getItem('xasread-auth-mode')
+    if (mode === 'google' || mode === 'guest') return true
+    return !!localStorage.getItem('xasread-token')
+  })
 
   if (isLoading) {
     return (
@@ -745,7 +750,7 @@ function AppContent() {
   }
 
   if (!showApp || !isAuthenticated) {
-    return <LandingPage onContinueAsGuest={continueAsGuest} isAuthenticated={isAuthenticated} onEnterApp={() => setShowApp(true)} />
+    return <LandingPage onContinueAsGuest={continueAsGuest} onEnterApp={() => setShowApp(true)} />
   }
 
   return <AuthenticatedApp />

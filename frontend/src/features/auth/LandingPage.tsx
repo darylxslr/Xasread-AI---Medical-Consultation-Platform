@@ -1,12 +1,30 @@
-import { Shield, ArrowLeft, ArrowRight } from 'lucide-react'
-import { useState } from 'react'
+import { Shield, ArrowLeft, LogIn } from 'lucide-react'
+import { useState, useMemo } from 'react'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useAuth } from '../../context/AuthContext'
 
 interface LandingPageProps {
   onContinueAsGuest: (name: string) => void
-  isAuthenticated?: boolean
   onEnterApp?: () => void
 }
+
+const resumeBtn = {
+  width: '100%',
+  padding: '14px 20px',
+  borderRadius: 'var(--radius-pill)',
+  border: 'none',
+  background: 'linear-gradient(135deg, #D4782F 0%, #E8954F 100%)',
+  color: '#fff',
+  fontSize: 15,
+  fontWeight: 700,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+  cursor: 'pointer',
+  marginBottom: 20,
+  boxShadow: '0 4px 16px rgba(212, 120, 47, 0.25)',
+} as const
 
 const s = {
   wrapper: {
@@ -133,10 +151,12 @@ function GoogleIcon() {
   )
 }
 
-export default function LandingPage({ onContinueAsGuest, isAuthenticated, onEnterApp }: LandingPageProps) {
+export default function LandingPage({ onContinueAsGuest, onEnterApp }: LandingPageProps) {
+  const { getStoredGuestName, resumeGuestSession } = useAuth()
   const isMobile = useMediaQuery('(max-width: 639px)')
   const [showNameInput, setShowNameInput] = useState(false)
   const [guestName, setGuestName] = useState('')
+  const storedGuestName = useMemo(() => getStoredGuestName(), [getStoredGuestName])
   const handleGoogleSignIn = () => {
     window.location.href = '/auth/google'
   }
@@ -151,6 +171,11 @@ export default function LandingPage({ onContinueAsGuest, isAuthenticated, onEnte
     }
   }
 
+  const handleResumeGuest = () => {
+    resumeGuestSession()
+    onEnterApp?.()
+  }
+
   return (
     <div style={s.wrapper}>
       <style>{`
@@ -158,37 +183,12 @@ export default function LandingPage({ onContinueAsGuest, isAuthenticated, onEnte
         .landing-guest-btn:hover { border-color: var(--primary) !important; color: var(--primary) !important; background: var(--primary-light) !important; }
         .landing-input:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 3px rgba(212,120,47,0.15) !important; outline: none !important; }
         .landing-start-btn:hover { opacity: 0.9 !important; }
+        .landing-resume-btn:hover { opacity: 0.9 !important; box-shadow: 0 6px 20px rgba(212,120,47,0.35) !important; }
       `}</style>
       <div style={cardStyle}>
         <img src="/logo.svg" alt="Xasread" style={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56, borderRadius: 'var(--radius-md)' }} />
         <h1 style={isMobile ? s.titleMobile : s.title}>Xasread</h1>
         <p style={isMobile ? s.subtitleMobile : s.subtitle}>AI Medical Consultation</p>
-
-        {isAuthenticated && !showNameInput && (
-          <button
-            onClick={onEnterApp}
-            style={{
-              width: '100%',
-              padding: '14px 20px',
-              borderRadius: 'var(--radius-pill)',
-              border: 'none',
-              background: 'linear-gradient(135deg, #D4782F 0%, #E8954F 100%)',
-              color: '#fff',
-              fontSize: 15,
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              cursor: 'pointer',
-              marginBottom: 20,
-              boxShadow: '0 4px 16px rgba(212, 120, 47, 0.25)',
-            }}
-          >
-            Continue to Dashboard
-            <ArrowRight size={18} />
-          </button>
-        )}
 
         {showNameInput ? (
           <>
@@ -260,13 +260,24 @@ export default function LandingPage({ onContinueAsGuest, isAuthenticated, onEnte
             </button>
 
             <div style={{ marginTop: 12 }}>
-              <button
-                className="landing-guest-btn"
-                style={s.guestBtn}
-                onClick={() => setShowNameInput(true)}
-              >
-                Continue as Guest
-              </button>
+              {storedGuestName ? (
+                <button
+                  className="landing-resume-btn"
+                  style={resumeBtn}
+                  onClick={handleResumeGuest}
+                >
+                  <LogIn size={18} />
+                  Resume Session as {storedGuestName}
+                </button>
+              ) : (
+                <button
+                  className="landing-guest-btn"
+                  style={s.guestBtn}
+                  onClick={() => setShowNameInput(true)}
+                >
+                  Continue as Guest
+                </button>
+              )}
             </div>
           </>
         )}

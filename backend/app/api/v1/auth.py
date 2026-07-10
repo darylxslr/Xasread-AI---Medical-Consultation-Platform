@@ -85,10 +85,21 @@ async def google_login(request: Request):
 
 @router.get("/google/callback")
 async def google_callback(
+    error: str | None = None,
     code: str | None = None,
     state: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
+    if error:
+        origin = "http://localhost:5173"
+        try:
+            state_payload = verify_oauth_state(state)
+            if state_payload and "origin" in state_payload:
+                origin = state_payload["origin"]
+        except Exception:
+            pass
+        return RedirectResponse(url=f"{origin}/auth/callback?error={error}", status_code=307)
+
     if not code:
         raise HTTPException(status_code=400, detail="Missing authorization code")
 

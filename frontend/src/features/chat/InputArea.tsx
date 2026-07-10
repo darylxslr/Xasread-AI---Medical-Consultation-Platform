@@ -32,17 +32,26 @@ const s = {
     display: 'flex',
     gap: 4,
   } as const,
-  modeChip: (active: boolean, disabled: boolean = false) => ({
-    padding: '4px 12px',
-    borderRadius: 'var(--radius-pill)',
-    border: `1px solid ${active ? 'var(--primary)' : 'var(--border-color)'}`,
-    fontSize: 11,
-    fontWeight: 600,
-    cursor: disabled ? 'default' as const : 'pointer' as const,
-    background: active ? 'var(--primary-light)' : disabled ? 'transparent' : 'transparent',
-    color: active ? 'var(--primary)' : disabled ? 'var(--text-muted)' : 'var(--text-muted)',
-    opacity: disabled ? 0.4 : 1,
-  }),
+  modeColors: {
+    plain: '#888',
+    standard: 'var(--primary)',
+    clinical: '#D4782F',
+  } as Record<string, string>,
+  modeChip: (mode: string, active: boolean, disabled: boolean = false) => {
+    const c = s.modeColors[mode] || 'var(--primary)'
+    return {
+      padding: '4px 12px',
+      borderRadius: 'var(--radius-pill)',
+      border: `1px solid ${active ? c : 'var(--border-color)'}`,
+      fontSize: 11,
+      fontWeight: 600,
+      cursor: disabled ? 'default' as const : 'pointer' as const,
+      background: active ? `${c}15` : disabled ? 'transparent' : 'transparent',
+      color: active ? c : disabled ? 'var(--text-muted)' : 'var(--text-muted)',
+      opacity: disabled ? 0.4 : 1,
+      transition: 'all 0.15s'
+    }
+  },
   hipaaBadge: {
     display: 'flex',
     alignItems: 'center',
@@ -211,6 +220,7 @@ export default function InputArea({ onSend, onFilePick, pendingFile, sessionId }
   const handleModeClick = (m: string) => {
     setMode(m)
     saveModeToStorage(m)
+    window.dispatchEvent(new CustomEvent('xasread-settings-changed'))
   }
 
   const wrapperStyle = { ...s.wrapper, padding: 'var(--input-padding)' }
@@ -242,7 +252,7 @@ export default function InputArea({ onSend, onFilePick, pendingFile, sessionId }
               return (
                 <button
                   key={m}
-                  style={s.modeChip(mode === m, fileAttached)}
+                  style={s.modeChip(m, mode === m, fileAttached)}
                   onClick={() => !fileAttached && handleModeClick(m)}
                   title={fileAttached ? 'Image analysis uses Clinical AI automatically' : modeChipLabels[m]}
                 >

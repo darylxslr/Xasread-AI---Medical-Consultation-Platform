@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { ThemeProvider } from './context/ThemeContext'
-import { AuthProvider, useAuth } from './context/AuthContext'
+import { AuthProvider, useAuth, hasStoredGuest } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import Sidebar from './features/sidebar/Sidebar'
@@ -20,10 +20,28 @@ function ChatArea({ messages, onRephrase, isTyping }: { messages: Message[]; onR
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
+  const userScrolledUp = useRef(false)
+
+  const isNearBottom = useCallback(() => {
+    const el = containerRef.current
+    if (!el) return true
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 60
+  }, [])
 
   const scrollToBottom = useCallback(() => {
+    if (userScrolledUp.current) return
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const onScroll = () => {
+      userScrolledUp.current = !isNearBottom()
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [isNearBottom])
 
   useEffect(() => {
     scrollToBottom()
@@ -215,16 +233,61 @@ function WelcomeScreen({ conversations, onNewConsultation, onSelectConv }: Welco
 
 function AuthCallbackHandler({ onSignedIn }: { onSignedIn: () => void }) {
   const { signIn } = useAuth()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const token = params.get('token')
+    const err = params.get('error')
+    if (err) {
+      setError(err)
+      window.history.replaceState({}, '', '/')
+      return
+    }
     if (token) {
       signIn(token)
       window.history.replaceState({}, '', '/')
       onSignedIn()
     }
   }, [signIn, onSignedIn])
+
+  if (error) {
+    return (
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        padding: 24,
+        background: 'var(--bg-main)',
+      }}>
+        <p style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 600, margin: 0 }}>
+          Sign-in was cancelled
+        </p>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+          You denied the sign-in request. No problem — you can continue as a guest.
+        </p>
+        <a
+          href="/"
+          style={{
+            padding: '10px 24px',
+            borderRadius: 'var(--radius-pill)',
+            border: 'none',
+            background: 'var(--primary)',
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer',
+            textDecoration: 'none',
+          }}
+        >
+          Go back
+        </a>
+      </div>
+    )
+  }
 
   return (
     <div style={{
@@ -721,7 +784,12 @@ function AppContent() {
   const [showApp, setShowApp] = useState(() => {
     if (window.location.pathname === '/auth/callback') return true
     const mode = sessionStorage.getItem('xasread-auth-mode')
-    if (mode === 'google' || mode === 'guest') return true
+    if (mode === 'google') return true
+    if (mode === 'guest') {
+      if (hasStoredGuest()) return true
+      sessionStorage.removeItem('xasread-auth-mode')
+      return false
+    }
     return !!localStorage.getItem('xasread-token')
   })
 

@@ -43,7 +43,7 @@ The backend uses a local SQLite database (`xasread.db`) managed via async SQLAlc
    - `user_id` (Primary Key & Foreign Key referencing `users.id` with cascade delete)
    - `theme` (String: e.g., `"light"`, `"dark"`)
    - `font_size` (String: e.g., `"medium"`)
-   - `chat_mode` (String: e.g., `"standard"`, `"simple"`, `"advanced"`, `"concise"`, `"detailed"`)
+   - `chat_mode` (String: e.g., `"plain"`, `"standard"`, `"clinical"`)
 
 ---
 
@@ -126,27 +126,24 @@ The API router configuration is structured into separate routers in [main.py](fi
 * `GET /conversations/{conv_id}/messages`: Lists all messages in a conversation.
 * `POST /conversations/{conv_id}/messages`: Manually adds a user/assistant message to a conversation.
 
-### 🧠 Chat & AI Assistant (`/conversations`) — [chat.py](file:///C:/Users/daryl/OneDrive/Documents/Desktop/XasreadFree/backend/chat.py)
+### 🧠 Chat & AI Assistant (`/conversations`) — [app/api/v1/chat.py](file:///C:/Users/daryl/OneDrive/Documents/Desktop/XasreadFree/backend/app/api/v1/chat.py)
 * `POST /conversations/{conv_id}/chat`: Sends a message to the AI assistant. It gathers conversation history, applies medical prompts, includes attachments context, queries Groq models, saves the assistant response, and returns the response.
-* `POST /conversations/guest-chat`: Provides a single-response endpoint for guests without storing conversation history in the database.
-* `POST /conversations/{conv_id}/rephrase`: Rephrases an assistant's medical response to target different user comprehension levels (`"simple"`, `"standard"`, or `"advanced"`).
+* `POST /conversations/{conv_id}/rephrase`: Rephrases an assistant's medical response to target different user comprehension levels (`"plain"`, `"standard"`, or `"clinical"`).
 
 ---
 
 ## 🤖 AI Consultation Model Configuration
 
-Xasread uses the **Groq API** for LLM generation. To ensure high availability, the backend implements a fallback mechanism in [chat.py](file:///C:/Users/daryl/OneDrive/Documents/Desktop/XasreadFree/backend/chat.py#L108-L111) over these model targets:
+Xasread uses the **Groq API** for LLM generation. To ensure high availability, the backend implements a fallback mechanism in [app/services/chat_service.py](file:///C:/Users/daryl/OneDrive/Documents/Desktop/XasreadFree/backend/app/services/chat_service.py#L193-L194) over these model targets:
 1. `llama-3.3-70b-versatile`
 2. `mixtral-8x7b-32768`
 3. `gemma2-9b-it`
 
 ### System Prompts & Modes
-The assistant incorporates medical disclaimers and structured markdown responses. The medical explanations are dynamically tailored based on requested chat modes:
-* **Simple**: Translates clinical terms to everyday language for non-technical patients.
-* **Standard**: Balanced explanation suitable for general users.
-* **Advanced**: Targets healthcare professionals using proper medical terminology and clinical reasoning.
-* **Concise**: Extremely brief summaries.
-* **Detailed**: Thorough diagnostics analysis and background information.
+The assistant follows a structured clinical reasoning framework with mode-specific adaptations:
+* **Plain**: Warm, simple language (6th grade level) with analogies. Targets patients with limited medical knowledge.
+* **Standard**: Balanced, professional language (high school level). Targets general users. Briefly explains medical terms.
+* **Clinical**: Precise medical terminology with ICD-10 codes and ranked differentials. Targets healthcare professionals.
 
 ---
 

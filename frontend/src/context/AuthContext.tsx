@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import type { UserOut } from '../types'
 
 export interface AuthContextType {
@@ -19,6 +19,17 @@ export interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+export function hasStoredGuest(): boolean {
+  if (localStorage.getItem('xasread-guest') !== 'true') return false
+  return !!localStorage.getItem('xasread-guest-user') && !!localStorage.getItem('xasread-guest-token')
+}
+
+export function isGuestSessionExpired(): boolean {
+  const createdAt = localStorage.getItem('xasread-guest-created-at')
+  if (!createdAt) return true
+  return Date.now() - Number(createdAt) > 24 * 60 * 60 * 1000
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserOut | null>(null)
   const [token, setToken] = useState<string | null>(() => {
@@ -26,19 +37,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (mode === 'guest') return null
     return localStorage.getItem('xasread-token') || null
   })
-  const [isGuest, setIsGuest] = useState(() => sessionStorage.getItem('xasread-auth-mode') === 'guest')
+
+  const guestValid = useRef<boolean | null>(null)
+  if (guestValid.current === null) {
+    guestValid.current = hasStoredGuest()
+  }
+
+  const [isGuest, setIsGuest] = useState(() => {
+    if (guestValid.current) {
+      sessionStorage.setItem('xasread-auth-mode', 'guest')
+      return true
+    }
+    sessionStorage.removeItem('xasread-auth-mode')
+    return false
+  })
   const [guestUsername, setGuestUsername] = useState<string | null>(() => {
-    if (sessionStorage.getItem('xasread-auth-mode') !== 'guest') return null
+    if (!guestValid.current) return null
     return localStorage.getItem('xasread-guest-user')
   })
   const [guestToken, setGuestToken] = useState<string | null>(() => {
-    if (sessionStorage.getItem('xasread-auth-mode') !== 'guest') return null
+    if (!guestValid.current) return null
     return localStorage.getItem('xasread-guest-token')
   })
   const [isLoading, setIsLoading] = useState(() => {
     const mode = sessionStorage.getItem('xasread-auth-mode')
     if (mode === 'google') return true
-    if (mode === 'guest') return false
+    if (guestValid.current) return false
     return !!localStorage.getItem('xasread-token')
   })
 
@@ -84,6 +108,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const continueAsGuest = useCallback((name: string) => {
+    if (hasStoredGuest() && !isGuestSessionExpired()) {
+      const existingName = localStorage.getItem('xasread-guest-user')
+      const existingToken = localStorage.getItem('xasread-guest-token')
+      if (existingName && existingToken) {
+        sessionStorage.setItem('xasread-auth-mode', 'guest')
+        setIsGuest(true)
+        setGuestUsername(existingName)
+        setGuestToken(existingToken)
+        setUser(null)
+        setToken(null)
+        localStorage.removeItem('xasread-token')
+      }
+      return
+    }
+    if (localStorage.getItem('xasread-guest') === 'true') {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('xasread-guest-data-'))
+        .forEach(k => localStorage.removeItem(k))
+      localStorage.removeItem('xasread-guest')
+      localStorage.removeItem('xasread-guest-user')
+      localStorage.removeItem('xasread-guest-token')
+      localStorage.removeItem('xasread-guest-created-at')
+      localStorage.removeItem('xasread-active-conv')
+    }
     const token = Math.random().toString(36).slice(2, 8)
     sessionStorage.setItem('xasread-auth-mode', 'guest')
     localStorage.setItem('xasread-guest', 'true')
@@ -99,22 +147,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const getStoredGuestName = useCallback((): string | null => {
-    if (localStorage.getItem('xasread-guest') !== 'true') return null
-    const name = localStorage.getItem('xasread-guest-user')
-    const token = localStorage.getItem('xasread-guest-token')
-    const createdAt = localStorage.getItem('xasread-guest-created-at')
-    if (!name || !token || !createdAt) return null
-    if (Date.now() - Number(createdAt) > 24 * 60 * 60 * 1000) {
-      localStorage.removeItem('xasread-guest')
-      localStorage.removeItem('xasread-guest-user')
-      localStorage.removeItem('xasread-guest-token')
-      localStorage.removeItem('xasread-guest-created-at')
-      return null
-    }
-    return name
+    if (!hasStoredGuest() || isGuestSessionExpired()) return null
+    return localStorage.getItem('xasread-guest-user')
   }, [])
 
   const resumeGuestSession = useCallback(() => {
+    if (!hasStoredGuest() || isGuestSessionExpired()) return
     const name = localStorage.getItem('xasread-guest-user')
     const token = localStorage.getItem('xasread-guest-token')
     if (!name || !token) return

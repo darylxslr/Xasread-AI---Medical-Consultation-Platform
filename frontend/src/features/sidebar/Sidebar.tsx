@@ -349,7 +349,7 @@ export default function Sidebar({ conversations, activeConv, onSelectConv, onNew
         </div>
       </div>
 
-      <button className="sidebar-new-btn" style={{ ...s.newBtn, opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }} disabled={disabled} onClick={onNewConsultation}>
+      <button className="sidebar-new-btn" style={{ ...s.newBtn, opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }} disabled={disabled} onClick={() => { onNewConsultation(); onToggle?.() }}>
         <Plus size={16} />
         New Consultation
       </button>

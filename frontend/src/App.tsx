@@ -617,7 +617,7 @@ function AuthenticatedApp() {
   }, [signOut, isGuest])
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: 'var(--full-height, 100vh)', overflow: 'hidden' }}>
         <Sidebar
           conversations={conversations.map(c => ({
             id: c.id,
@@ -644,7 +644,7 @@ function AuthenticatedApp() {
         marginLeft: 'var(--content-ml)',
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
+        height: 'var(--full-height, 100vh)',
         background: 'var(--bg-main)',
         position: 'relative',
       }}>

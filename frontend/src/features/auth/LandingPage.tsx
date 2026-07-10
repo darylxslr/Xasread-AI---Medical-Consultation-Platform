@@ -10,12 +10,13 @@ interface LandingPageProps {
 
 const s = {
   wrapper: {
-    minHeight: '100vh',
+    minHeight: 'var(--full-height, 100vh)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     background: 'var(--bg-main)',
     padding: '24px',
+    overflowY: 'auto',
   } as const,
   card: {
     background: 'var(--bg-card)',

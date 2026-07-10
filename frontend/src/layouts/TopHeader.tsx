@@ -23,7 +23,6 @@ const s = {
     top: 0,
     zIndex: 50,
     flexShrink: 0,
-    overflow: 'hidden',
   } as const,
   left: {
     display: 'flex',
@@ -164,7 +163,7 @@ export default function TopHeader({ onEndSession, onExport, onToggleSidebar, ses
         </button>
         <span className="header-mobile-hide" style={s.sessionLabel}>Session</span>
         <span className="header-mobile-hide" style={s.sessionId}>{sessionId}</span>
-        <div className="header-mobile-hide" style={s.statusBadge}>
+        <div style={s.statusBadge}>
           <PulseDot />
           Model Active
         </div>

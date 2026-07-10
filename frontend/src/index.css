@@ -35,6 +35,7 @@
   --viewer-bg: #0F0F0F;
   --viewer-border: #2A2A2A;
   --pulse-color: #22C55E;
+  --full-height: 100dvh;
   --chat-font-size: 14px;
   --msg-bubble-max: 75%;
   --header-padding: 0 24px;

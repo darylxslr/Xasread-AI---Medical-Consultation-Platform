@@ -25,7 +25,7 @@ const s = {
   sidebar: {
     width: 'var(--sidebar-width)',
     minWidth: 'var(--sidebar-width)',
-    height: '100vh',
+    height: 'var(--full-height, 100vh)',
     background: 'var(--bg-sidebar)',
     borderRight: '1px solid var(--border-color)',
     display: 'flex',
@@ -176,6 +176,8 @@ const s = {
     borderRadius: 'var(--radius-sm)',
     transition: 'all 0.15s',
     flex: 1,
+    minWidth: 0,
+    overflow: 'hidden',
   } as const,
   avatar: {
     width: 32,
@@ -195,6 +197,9 @@ const s = {
     fontSize: 13,
     fontWeight: 600,
     color: 'var(--text-primary)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   } as const,
   userRole: {
     fontSize: 11,

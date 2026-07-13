@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Xasread AI - Medical Consultation Platform
 
 Xasread is an AI-powered medical consultation assistant and medical imaging viewer. The system is designed to help patients and healthcare professionals understand symptoms, analyze medical files (images, PDFs), and generate formatted clinical assessments.
@@ -94,4 +93,4 @@ The UI will be accessible at http://localhost:5173.
 =======
 # Xasread-Medical
 Xasread is a frictionless, privacy-first medical AI assistant designed to help users analyze medical resources (like X-rays) and better understand their health concerns before visiting a doctor.
->>>>>>> 6e0ed0c0e59531f1d44ded37583e57d0105ebc1e
+Deployed Website URL = xasread-free.vecel.app
